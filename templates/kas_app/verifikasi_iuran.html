@@ -72,7 +72,7 @@
                             {{ p.periode.nama_periode }}
                         </td>
                         <td class="py-3.5 px-4 whitespace-nowrap">
-                            <span class="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700">
+                            <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold {% if p.metode_pembayaran == 'Tunai' %}bg-amber-50 text-amber-800 border border-amber-200{% else %}bg-sky-50 text-sky-800 border border-sky-200{% endif %}">
                                 {{ p.metode_pembayaran }}
                             </span>
                         </td>

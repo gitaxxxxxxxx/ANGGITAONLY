@@ -37,7 +37,8 @@ def generate_mock_transfer_receipt(anggota, periode, metode='Transfer', catatan=
         img = Image.new('RGB', (w, h), color='#F8FAFC')
         draw = ImageDraw.Draw(img)
 
-        header_color = '#00529C' if 'Transfer' in metode else '#1E3A8A'
+        is_tunai = 'Tunai' in metode
+        header_color = '#059669' if is_tunai else '#00529C'
         draw.rectangle([0, 0, w, 110], fill=header_color)
         draw.rounded_rectangle([25, 80, w-25, h-40], radius=20, fill='#FFFFFF', outline='#E2E8F0', width=2)
 
@@ -55,10 +56,12 @@ def generate_mock_transfer_receipt(anggota, periode, metode='Transfer', catatan=
         except:
             font_xl = font_md = font_sm = font_xs = font_head = ImageFont.load_default()
 
-        draw.text((35, 40), f'{metode.upper()}', fill='#FFFFFF', font=font_head)
+        header_title = 'KWITANSI SETOR TUNAI' if is_tunai else 'BUKTI TRANSFER KAS'
+        draw.text((35, 40), header_title, fill='#FFFFFF', font=font_head)
         draw.text((w-180, 45), 'RESI RESMI', fill='#E0F2FE', font=font_sm)
 
-        draw.text((w//2, 215), 'PEMBAYARAN BERHASIL', fill='#0F172A', font=font_xl, anchor='mm')
+        main_title = 'SETOR TUNAI BERHASIL' if is_tunai else 'TRANSFER BERHASIL'
+        draw.text((w//2, 215), main_title, fill='#0F172A', font=font_xl, anchor='mm')
         now_str = timezone.now().strftime('%d %b %Y %H:%M WIB')
         draw.text((w//2, 250), now_str, fill='#64748B', font=font_sm, anchor='mm')
 
@@ -69,13 +72,13 @@ def generate_mock_transfer_receipt(anggota, periode, metode='Transfer', catatan=
         draw.line([50, 385, w-50, 385], fill='#E2E8F0', width=1)
 
         details = [
-            ('No. Referensi', f'TRF{int(timezone.now().timestamp())}'),
-            ('Nama Pengirim', anggota.nama),
+            ('No. Referensi', f'{"CSH" if is_tunai else "TRF"}{int(timezone.now().timestamp())}'),
+            ('Nama Mahasiswa', anggota.nama),
             ('NIM Mahasiswa', anggota.nim),
-            ('Penerima', 'KAS BENDAHARA ORMAWA'),
-            ('Metode Pembayaran', metode),
+            ('Penerima', 'BENDAHARA KAS ORMAWA'),
+            ('Metode Pembayaran', 'Tunai Langsung' if is_tunai else 'Transfer Rekening'),
             ('Peruntukan', f'Iuran Kas {periode.nama_periode}'),
-            ('Catatan', catatan or 'Tanpa catatan tambahan'),
+            ('Catatan', catatan or ('Diserahkan tunai ke Bendahara' if is_tunai else 'Tanpa catatan')),
             ('Status', 'BERHASIL / SUKSES'),
         ]
 
@@ -1263,7 +1266,10 @@ def kirim_bukti_iuran_view(request):
         try:
             periode = PeriodeKas.objects.get(id=periode_id)
             if not bukti_file:
-                mock_rel_path = generate_mock_transfer_receipt(anggota, periode, metode, catatan)
+                mock_rel_path = generate_mock_transfer_receipt(
+                    anggota, periode, metode=metode,
+                    catatan=catatan or ('Setor tunai ke Bendahara' if metode == 'Tunai' else '')
+                )
                 bukti_file = mock_rel_path if mock_rel_path else None
 
             pengajuan = PengajuanIuran.objects.create(
@@ -1272,14 +1278,21 @@ def kirim_bukti_iuran_view(request):
                 nominal=periode.nominal,
                 metode_pembayaran=metode,
                 bukti_transfer=bukti_file,
-                catatan=catatan,
+                catatan=catatan or ('Setor tunai langsung ke Bendahara' if metode == 'Tunai' else ''),
                 status='menunggu'
             )
-            messages.success(
-                request,
-                f"Bukti pembayaran kas bulan {periode.nama_periode} berhasil dikirim ke Admin! "
-                "Status di matriks kini KUNING (Menunggu ACC)."
-            )
+            if metode == 'Tunai':
+                messages.success(
+                    request,
+                    f"Pengajuan pembayaran kas TUNAI bulan {periode.nama_periode} berhasil dikirim! "
+                    "Silakan serahkan uang tunai langsung ke Bendahara untuk di-ACC."
+                )
+            else:
+                messages.success(
+                    request,
+                    f"Bukti transfer kas bulan {periode.nama_periode} berhasil dikirim ke Bendahara! "
+                    "Status di matriks kini KUNING (Menunggu ACC)."
+                )
         except Exception as e:
             messages.error(request, f"Gagal mengirim bukti pembayaran: {str(e)}")
 

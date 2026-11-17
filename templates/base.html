@@ -51,20 +51,15 @@
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
 
-    <!-- Top Notice Bar (Academic Project Info) -->
-    <div class="bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 text-white text-xs py-1.5 px-4 no-print border-b border-emerald-900/40">
-        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+    <!-- Top Minimal Bar -->
+    <div class="bg-slate-900 text-slate-300 text-xs py-1.5 px-4 no-print border-b border-slate-800">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
             <div class="flex items-center space-x-2">
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
-                    Sistem Tugas Akhir / Metopen
-                </span>
-                <span class="font-medium truncate max-w-xl hidden md:inline">
-                    {{ app_subtitle }}
-                </span>
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span class="font-medium text-slate-200">{{ profil_organisasi.nama_organisasi }}</span>
             </div>
-            <div class="flex items-center space-x-4 text-emerald-100">
-                <span class="flex items-center"><i data-lucide="building-2" class="w-3.5 h-3.5 mr-1"></i> {{ profil_organisasi.nama_organisasi }}</span>
-                <span class="flex items-center"><i data-lucide="calendar" class="w-3.5 h-3.5 mr-1"></i> Periode {{ profil_organisasi.periode_kepengurusan }}</span>
+            <div class="flex items-center space-x-3 text-slate-400 text-[11px]">
+                <span>Periode {{ profil_organisasi.periode_kepengurusan }}</span>
             </div>
         </div>
     </div>

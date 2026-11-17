@@ -23,7 +23,7 @@ from .models import (
 # ==========================================
 # HELPER FUNCTIONS
 # ==========================================
-def generate_mock_transfer_receipt(anggota, periode, metode='Transfer Bank', catatan=''):
+def generate_mock_transfer_receipt(anggota, periode, metode='Transfer', catatan=''):
     """Membuat resi transfer visual otomatis jika tidak ada file fisik yang diunggah."""
     try:
         from PIL import Image, ImageDraw, ImageFont
@@ -37,7 +37,7 @@ def generate_mock_transfer_receipt(anggota, periode, metode='Transfer Bank', cat
         img = Image.new('RGB', (w, h), color='#F8FAFC')
         draw = ImageDraw.Draw(img)
 
-        header_color = '#00529C' if 'BCA' in metode else ('#16A34A' if 'QRIS' in metode else '#1E3A8A')
+        header_color = '#00529C' if 'Transfer' in metode else '#1E3A8A'
         draw.rectangle([0, 0, w, 110], fill=header_color)
         draw.rounded_rectangle([25, 80, w-25, h-40], radius=20, fill='#FFFFFF', outline='#E2E8F0', width=2)
 
@@ -58,7 +58,7 @@ def generate_mock_transfer_receipt(anggota, periode, metode='Transfer Bank', cat
         draw.text((35, 40), f'{metode.upper()}', fill='#FFFFFF', font=font_head)
         draw.text((w-180, 45), 'RESI RESMI', fill='#E0F2FE', font=font_sm)
 
-        draw.text((w//2, 215), 'TRANSFER BERHASIL', fill='#0F172A', font=font_xl, anchor='mm')
+        draw.text((w//2, 215), 'PEMBAYARAN BERHASIL', fill='#0F172A', font=font_xl, anchor='mm')
         now_str = timezone.now().strftime('%d %b %Y %H:%M WIB')
         draw.text((w//2, 250), now_str, fill='#64748B', font=font_sm, anchor='mm')
 
@@ -72,8 +72,8 @@ def generate_mock_transfer_receipt(anggota, periode, metode='Transfer Bank', cat
             ('No. Referensi', f'TRF{int(timezone.now().timestamp())}'),
             ('Nama Pengirim', anggota.nama),
             ('NIM Mahasiswa', anggota.nim),
-            ('Penerima', 'BEM FASILKOM UI (KAS UTAMA)'),
-            ('Bank Tujuan', 'BCA (014) - Rek. 8820192831'),
+            ('Penerima', 'KAS BENDAHARA ORMAWA'),
+            ('Metode Pembayaran', metode),
             ('Peruntukan', f'Iuran Kas {periode.nama_periode}'),
             ('Catatan', catatan or 'Tanpa catatan tambahan'),
             ('Status', 'BERHASIL / SUKSES'),
@@ -516,7 +516,7 @@ def iuran_matrix_view(request):
                     'nominal': nominal_bayar,
                     'tanggal_bayar': tgl_bayar,
                     'bukti_url': bukti_url,
-                    'metode': pj.metode_pembayaran if pj else (record.metode_pembayaran if record else 'Transfer Bank'),
+                    'metode': pj.metode_pembayaran if pj else (record.metode_pembayaran if record else 'Transfer'),
                 })
                 total_dibayar += nominal_bayar
                 total_kolom_bulan[p.id] += nominal_bayar
@@ -1248,7 +1248,7 @@ def kirim_bukti_iuran_view(request):
     """Memungkinkan anggota mengunggah struk/bukti transfer kas rutin."""
     if request.method == 'POST':
         periode_id = request.POST.get('periode_id')
-        metode = request.POST.get('metode_pembayaran', 'Transfer Bank')
+        metode = request.POST.get('metode_pembayaran', 'Transfer')
         catatan = request.POST.get('catatan', '').strip()
         bukti_file = request.FILES.get('bukti_transfer')
 

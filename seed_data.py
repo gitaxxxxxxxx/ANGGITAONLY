@@ -213,7 +213,7 @@ def run_seed():
                     status='lunas',
                     nominal_dibayar=p.nominal,
                     tanggal_bayar=tgl_bayar,
-                    metode_pembayaran='QRIS' if idx % 2 == 0 else 'Transfer Bank',
+                    metode_pembayaran='Transfer' if idx % 2 == 0 else 'Tunai',
                     transaksi=trx
                 )
             else:
@@ -279,16 +279,16 @@ def run_seed():
     p_okt = PeriodeKas.objects.filter(tahun=2026, bulan=10).first()
     if ag_anggita and p_okt:
         resi_anggita = generate_mock_transfer_receipt(
-            ag_anggita, p_okt, metode='Transfer Bank BCA',
-            catatan='Sudah transfer via m-BCA a.n. Ni Made Anggita Maharani'
+            ag_anggita, p_okt, metode='Transfer',
+            catatan='Sudah transfer kas a.n. Ni Made Anggita Maharani'
         )
         PengajuanIuran.objects.create(
             anggota=ag_anggita,
             periode=p_okt,
             nominal=Decimal('10000'),
-            metode_pembayaran='Transfer Bank',
+            metode_pembayaran='Transfer',
             bukti_transfer=resi_anggita,
-            catatan='Sudah transfer via Bank BCA a.n. Ni Made Anggita Maharani. Mohon verifikasinya min, terima kasih!',
+            catatan='Sudah transfer kas bulan Oktober a.n. Ni Made Anggita Maharani. Mohon verifikasinya min, terima kasih!',
             status='menunggu'
         )
 
@@ -296,19 +296,19 @@ def run_seed():
     p_nov = PeriodeKas.objects.filter(tahun=2026, bulan=11).first()
     if ag_apriana and p_nov:
         resi_apriana = generate_mock_transfer_receipt(
-            ag_apriana, p_nov, metode='QRIS',
-            catatan='Scan QRIS resmi BEM a.n. I Made Apriana'
+            ag_apriana, p_nov, metode='Transfer',
+            catatan='Transfer kas a.n. I Made Apriana'
         )
         PengajuanIuran.objects.create(
             anggota=ag_apriana,
             periode=p_nov,
             nominal=Decimal('10000'),
-            metode_pembayaran='QRIS',
+            metode_pembayaran='Transfer',
             bukti_transfer=resi_apriana,
-            catatan='Pembayaran kas bulan November via scan QRIS resmi ormawa.',
+            catatan='Pembayaran kas bulan November via transfer a.n. I Made Apriana.',
             status='menunggu'
         )
-    print("✅ 2 Pengajuan iuran kas anggota (Lengkap dengan Bukti Resi Bank/QRIS) siap diverifikasi.")
+    print("✅ 2 Pengajuan iuran kas anggota (Lengkap dengan Bukti Resi Transfer) siap diverifikasi.")
 
     # Hitung Saldo Akhir
     total_in = Transaksi.objects.filter(jenis='masuk').aggregate(django.db.models.Sum('nominal'))['nominal__sum'] or Decimal('0')

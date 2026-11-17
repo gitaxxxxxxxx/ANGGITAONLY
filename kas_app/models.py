@@ -172,9 +172,8 @@ class IuranKas(models.Model):
         ('belum_lunas', 'Belum Lunas'),
     ]
     METODE_CHOICES = [
+        ('Transfer', 'Transfer'),
         ('Tunai', 'Tunai'),
-        ('Transfer Bank', 'Transfer Bank'),
-        ('QRIS', 'QRIS'),
     ]
 
     anggota = models.ForeignKey(Anggota, on_delete=models.CASCADE, related_name='iuran_list')
@@ -182,7 +181,7 @@ class IuranKas(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='belum_lunas')
     nominal_dibayar = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     tanggal_bayar = models.DateField(null=True, blank=True)
-    metode_pembayaran = models.CharField(max_length=30, choices=METODE_CHOICES, default='Tunai')
+    metode_pembayaran = models.CharField(max_length=30, choices=METODE_CHOICES, default='Transfer')
     catatan = models.CharField(max_length=200, blank=True, default='')
     transaksi = models.ForeignKey(Transaksi, on_delete=models.SET_NULL, null=True, blank=True, related_name='iuran_terkait')
 
@@ -203,15 +202,14 @@ class PengajuanIuran(models.Model):
         ('ditolak', 'Ditolak'),
     ]
     METODE_CHOICES = [
-        ('Transfer Bank', 'Transfer Bank'),
-        ('QRIS', 'QRIS Kas Ormawa'),
+        ('Transfer', 'Transfer'),
         ('Tunai', 'Tunai'),
     ]
 
     anggota = models.ForeignKey(Anggota, on_delete=models.CASCADE, related_name='pengajuan_list')
     periode = models.ForeignKey(PeriodeKas, on_delete=models.CASCADE, related_name='pengajuan_list')
     nominal = models.DecimalField(max_digits=12, decimal_places=2)
-    metode_pembayaran = models.CharField(max_length=30, choices=METODE_CHOICES, default='Transfer Bank')
+    metode_pembayaran = models.CharField(max_length=30, choices=METODE_CHOICES, default='Transfer')
     bukti_transfer = models.FileField(upload_to='bukti_transfer_anggota/')
     catatan = models.TextField(blank=True, default='')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='menunggu')

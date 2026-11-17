@@ -85,6 +85,9 @@
                     <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 mr-1"></i> Reset Filter
                 </a>
                 {% endif %}
+                <a href="{% url 'cetak_lpj' %}?download=pdf" target="_blank" class="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold flex items-center text-xs transition-colors">
+                    <i data-lucide="file-down" class="w-3.5 h-3.5 mr-1 text-emerald-700"></i> Download PDF
+                </a>
                 <a href="{% url 'transaksi_export_csv' %}" class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium flex items-center text-xs">
                     <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 mr-1 text-emerald-600"></i> Ekspor CSV
                 </a>

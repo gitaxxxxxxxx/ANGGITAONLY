@@ -29,11 +29,11 @@
                     {% endfor %}
                 </select>
             </form>
+            <a href="{% url 'cetak_lpj' %}?tahun={{ tahun }}&download=pdf" target="_blank" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-900 rounded-xl text-xs font-bold flex items-center transition-colors shadow-md">
+                <i data-lucide="file-down" class="w-4 h-4 mr-1.5 text-slate-900"></i> Download PDF
+            </a>
             <a href="{% url 'rekap_bulanan_export_csv' %}?tahun={{ tahun }}" class="px-3.5 py-2 bg-white/15 hover:bg-white/25 text-white rounded-xl text-xs font-semibold flex items-center transition-colors border border-white/20">
                 <i data-lucide="file-spreadsheet" class="w-4 h-4 mr-1.5 text-emerald-300"></i> Unduh CSV
-            </a>
-            <a href="{% url 'cetak_lpj' %}?tahun={{ tahun }}" target="_blank" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-900 rounded-xl text-xs font-bold flex items-center transition-colors shadow-md">
-                <i data-lucide="printer" class="w-4 h-4 mr-1.5 text-slate-900"></i> Cetak LPJ Resmi
             </a>
         </div>
     </div>

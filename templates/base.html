@@ -87,7 +87,35 @@
 
                 <!-- Nav Menu -->
                 <nav class="p-4 space-y-1.5">
-                    <p class="px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Menu Utama</p>
+                    {% if is_anggota %}
+                    <!-- MENU ANGGOTA MAHASISWA -->
+                    <p class="px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Portal Mahasiswa</p>
+
+                    <a href="{% url 'portal_anggota' %}" class="flex items-center px-3 py-2.5 rounded-xl font-medium text-sm transition-colors {% if request.resolver_match.url_name == 'portal_anggota' %}bg-emerald-50 text-emerald-700 font-semibold{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">
+                        <i data-lucide="user-check" class="w-4 h-4 mr-3 text-emerald-600"></i>
+                        Portal Kas Saya
+                    </a>
+
+                    <a href="{% url 'portal_anggota' %}#uploadSection" class="flex items-center px-3 py-2.5 rounded-xl font-medium text-sm transition-colors text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+                        <i data-lucide="upload-cloud" class="w-4 h-4 mr-3 text-slate-400"></i>
+                        Kirim Bukti Bayar
+                    </a>
+
+                    <p class="px-3 pt-4 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Keterbukaan Kas</p>
+
+                    <a href="{% url 'rekapitulasi' %}" class="flex items-center px-3 py-2.5 rounded-xl font-medium text-sm transition-colors {% if request.resolver_match.url_name == 'rekapitulasi' %}bg-emerald-50 text-emerald-700 font-semibold{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">
+                        <i data-lucide="calculator" class="w-4 h-4 mr-3 text-slate-400"></i>
+                        Transparansi Arus Kas
+                    </a>
+
+                    <a href="{% url 'cetak_lpj' %}" target="_blank" class="flex items-center px-3 py-2.5 rounded-xl font-medium text-sm transition-colors text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+                        <i data-lucide="printer" class="w-4 h-4 mr-3 text-slate-400"></i>
+                        Lihat Laporan LPJ
+                    </a>
+
+                    {% else %}
+                    <!-- MENU BENDAHARA / PENGURUS -->
+                    <p class="px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Menu Bendahara</p>
 
                     <a href="{% url 'dashboard' %}" class="flex items-center px-3 py-2.5 rounded-xl font-medium text-sm transition-colors {% if request.resolver_match.url_name == 'dashboard' %}bg-emerald-50 text-emerald-700 font-semibold{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">
                         <i data-lucide="layout-dashboard" class="w-4 h-4 mr-3 {% if request.resolver_match.url_name == 'dashboard' %}text-emerald-600{% else %}text-slate-400{% endif %}"></i>
@@ -103,6 +131,14 @@
                         <i data-lucide="grid-3x3" class="w-4 h-4 mr-3 {% if 'iuran' in request.resolver_match.url_name %}text-emerald-600{% else %}text-slate-400{% endif %}"></i>
                         <span>Matriks Iuran Kas</span>
                         <span class="ml-auto text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">Rutin</span>
+                    </a>
+
+                    <a href="{% url 'verifikasi_iuran_list' %}" class="flex items-center px-3 py-2.5 rounded-xl font-medium text-sm transition-colors {% if 'verifikasi' in request.resolver_match.url_name %}bg-emerald-50 text-emerald-700 font-semibold{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">
+                        <i data-lucide="shield-check" class="w-4 h-4 mr-3 {% if 'verifikasi' in request.resolver_match.url_name %}text-emerald-600{% else %}text-slate-400{% endif %}"></i>
+                        <span>Verifikasi Kas</span>
+                        {% if pending_pengajuan_count > 0 %}
+                        <span class="ml-auto text-[10px] bg-rose-500 text-white font-extrabold px-1.5 py-0.5 rounded-full animate-pulse">{{ pending_pengajuan_count }}</span>
+                        {% endif %}
                     </a>
 
                     <p class="px-3 pt-4 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Laporan & Rekap</p>
@@ -132,6 +168,12 @@
                         <i data-lucide="settings" class="w-4 h-4 mr-3 {% if 'pengaturan' in request.resolver_match.url_name %}text-emerald-600{% else %}text-slate-400{% endif %}"></i>
                         Pengaturan Ormawa
                     </a>
+
+                    <p class="px-3 pt-4 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Pratinjau</p>
+                    <a href="{% url 'portal_anggota' %}" class="flex items-center px-3 py-2 rounded-xl text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100">
+                        <i data-lucide="external-link" class="w-3.5 h-3.5 mr-2"></i> Tampilan Anggota
+                    </a>
+                    {% endif %}
                 </nav>
             </div>
 
@@ -140,13 +182,27 @@
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-3">
                         <div class="w-9 h-9 rounded-full bg-emerald-100 border border-emerald-300 flex items-center justify-center font-bold text-emerald-800 text-xs">
-                            {% if request.user.is_authenticated %}{{ request.user.username|make_list|first|upper }}{% else %}B{% endif %}
+                            {% if user_anggota %}
+                                {{ user_anggota.nama|slice:":1" }}
+                            {% elif request.user.is_authenticated %}
+                                {{ request.user.username|slice:":1"|upper }}
+                            {% else %}
+                                B
+                            {% endif %}
                         </div>
-                        <div class="text-xs">
-                            <p class="font-bold text-slate-800">
-                                {% if request.user.is_authenticated %}{{ request.user.first_name|default:request.user.username }}{% else %}Bendahara Umum{% endif %}
+                        <div class="text-xs truncate max-w-[130px]">
+                            <p class="font-bold text-slate-800 truncate">
+                                {% if user_anggota %}
+                                    {{ user_anggota.nama }}
+                                {% elif request.user.is_authenticated %}
+                                    {{ request.user.first_name|default:request.user.username }}
+                                {% else %}
+                                    Bendahara Umum
+                                {% endif %}
                             </p>
-                            <p class="text-slate-500 text-[10px]">Administrator Kas</p>
+                            <p class="text-slate-500 text-[10px]">
+                                {% if user_anggota %}Anggota Mahasiswa{% else %}Administrator Kas{% endif %}
+                            </p>
                         </div>
                     </div>
                     {% if request.user.is_authenticated %}
@@ -179,7 +235,8 @@
 
                 <!-- Action Buttons -->
                 <div class="flex items-center space-x-2 md:space-x-3">
-                    <!-- Quick Add Transaction Modal Trigger -->
+                    {% if is_bendahara %}
+                    <!-- Quick Add Transaction Modal Trigger for Bendahara -->
                     <button onclick="openModal('quickTrxModal')" class="inline-flex items-center px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs md:text-sm font-semibold transition-all shadow-sm shadow-emerald-600/30">
                         <i data-lucide="plus-circle" class="w-4 h-4 mr-1.5"></i>
                         <span>Catat Transaksi</span>
@@ -188,6 +245,13 @@
                         <i data-lucide="printer" class="w-4 h-4 mr-1.5 text-slate-500"></i>
                         <span class="hidden sm:inline">Cetak LPJ</span>
                     </a>
+                    {% else %}
+                    <!-- Member Action Button -->
+                    <a href="{% url 'portal_anggota' %}#uploadSection" class="inline-flex items-center px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs md:text-sm font-semibold transition-all shadow-sm shadow-emerald-600/30">
+                        <i data-lucide="upload" class="w-4 h-4 mr-1.5"></i>
+                        <span>Kirim Bukti Bayar</span>
+                    </a>
+                    {% endif %}
                 </div>
             </header>
 
@@ -207,6 +271,14 @@
                             </button>
                         </div>
                         <nav class="mt-4 space-y-1">
+                            {% if is_anggota %}
+                            <a href="{% url 'portal_anggota' %}" class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">
+                                <i data-lucide="user-check" class="w-4 h-4 mr-3 text-emerald-600"></i> Portal Kas Saya
+                            </a>
+                            <a href="{% url 'rekapitulasi' %}" class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">
+                                <i data-lucide="calculator" class="w-4 h-4 mr-3 text-slate-500"></i> Transparansi Kas Ormawa
+                            </a>
+                            {% else %}
                             <a href="{% url 'dashboard' %}" class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">
                                 <i data-lucide="layout-dashboard" class="w-4 h-4 mr-3 text-slate-500"></i> Dashboard
                             </a>
@@ -215,6 +287,9 @@
                             </a>
                             <a href="{% url 'iuran_matrix' %}" class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">
                                 <i data-lucide="grid-3x3" class="w-4 h-4 mr-3 text-slate-500"></i> Matriks Iuran Kas
+                            </a>
+                            <a href="{% url 'verifikasi_iuran_list' %}" class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">
+                                <i data-lucide="shield-check" class="w-4 h-4 mr-3 text-slate-500"></i> Verifikasi Kas Anggota
                             </a>
                             <a href="{% url 'rekapitulasi' %}" class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">
                                 <i data-lucide="calculator" class="w-4 h-4 mr-3 text-slate-500"></i> Rekapitulasi Otomatis
@@ -225,6 +300,7 @@
                             <a href="{% url 'pengaturan' %}" class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">
                                 <i data-lucide="settings" class="w-4 h-4 mr-3 text-slate-500"></i> Pengaturan Ormawa
                             </a>
+                            {% endif %}
                         </nav>
                     </div>
                 </div>

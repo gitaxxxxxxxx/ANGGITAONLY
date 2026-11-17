@@ -51,6 +51,7 @@ class Divisi(models.Model):
 
 
 class Anggota(models.Model):
+    user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='profil_anggota')
     nim = models.CharField(max_length=30, unique=True)
     nama = models.CharField(max_length=150)
     divisi = models.ForeignKey(Divisi, on_delete=models.CASCADE, related_name='anggota_list')
@@ -134,7 +135,11 @@ class Transaksi(models.Model):
             prefix = "TRX-IN" if self.jenis == 'masuk' else "TRX-OUT"
             today_str = timezone.now().strftime('%Y%m%d')
             count = Transaksi.objects.filter(kode_transaksi__startswith=f"{prefix}-{today_str}").count() + 1
-            self.kode_transaksi = f"{prefix}-{today_str}-{count:03d}"
+            candidate = f"{prefix}-{today_str}-{count:03d}"
+            while Transaksi.objects.filter(kode_transaksi=candidate).exists():
+                count += 1
+                candidate = f"{prefix}-{today_str}-{count:03d}"
+            self.kode_transaksi = candidate
         super().save(*args, **kwargs)
 
 
@@ -189,3 +194,36 @@ class IuranKas(models.Model):
 
     def __str__(self):
         return f"{self.anggota.nama} - {self.periode.nama_periode} ({self.status.upper()})"
+
+
+class PengajuanIuran(models.Model):
+    STATUS_CHOICES = [
+        ('menunggu', 'Menunggu Verifikasi'),
+        ('disetujui', 'Disetujui'),
+        ('ditolak', 'Ditolak'),
+    ]
+    METODE_CHOICES = [
+        ('Transfer Bank', 'Transfer Bank'),
+        ('QRIS', 'QRIS Kas Ormawa'),
+        ('Tunai', 'Tunai'),
+    ]
+
+    anggota = models.ForeignKey(Anggota, on_delete=models.CASCADE, related_name='pengajuan_list')
+    periode = models.ForeignKey(PeriodeKas, on_delete=models.CASCADE, related_name='pengajuan_list')
+    nominal = models.DecimalField(max_digits=12, decimal_places=2)
+    metode_pembayaran = models.CharField(max_length=30, choices=METODE_CHOICES, default='Transfer Bank')
+    bukti_transfer = models.FileField(upload_to='bukti_transfer_anggota/')
+    catatan = models.TextField(blank=True, default='')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='menunggu')
+    catatan_bendahara = models.CharField(max_length=255, blank=True, default='')
+    tanggal_pengajuan = models.DateTimeField(auto_now_add=True)
+    diverifikasi_pada = models.DateTimeField(null=True, blank=True)
+    diverifikasi_oleh = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
+
+    class Meta:
+        verbose_name = 'Pengajuan Pembayaran Iuran'
+        verbose_name_plural = 'Pengajuan Pembayaran Iuran'
+        ordering = ['-tanggal_pengajuan']
+
+    def __str__(self):
+        return f"Pengajuan Kas {self.anggota.nama} - {self.periode.nama_periode} ({self.get_status_display()})"

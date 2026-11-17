@@ -82,12 +82,33 @@ Cukup klik dua kali file **`jalankan_sistem.bat`** yang ada di folder ini. Serve
 
 ---
 
-## 🔑 Akun Login Default
+## 👥 Hak Akses & Peran Pengguna (Multi-Role)
 
-| Role | Username | Password | Keterangan |
+Sistem dirancang dengan pemisahan peran yang tegas antara **Bendahara / Pengurus** dan **Anggota Mahasiswa**:
+
+### 1. Peran Bendahara / Administrator
+- Mengelola pembukuan kas masuk & kas keluar.
+- Melihat matriks iuran kas seluruh anggota ormawa.
+- **Memverifikasi Bukti Pembayaran**: Meninjau bukti transfer yang diunggah anggota, lalu menyetujui (otomatis mencatat kas masuk dan menandai lunas) atau menolak pengajuan dengan memberikan catatan evaluasi.
+- Mengakses fitur rekapitulasi arus kas otomatis dan mengunduh laporan Excel/CSV.
+- Menghasilkan dan mencetak Laporan Pertanggungjawaban (LPJ) resmi siap tanda tangan.
+- Mengelola data anggota, divisi, dan profil ormawa.
+
+### 2. Peran Anggota Mahasiswa (Read-Only & Kirim Bukti)
+- **Portal Kas Saya**: Memantau status iuran kas pribadi (bulan lunas, bulan nunggak, dan sisa tagihan).
+- **Kirim Bukti Pembayaran Kas**: Mengunggah foto screenshot/resi bukti transfer bank atau scan QRIS kas ormawa untuk diverifikasi bendahara.
+- **Transparansi Kas Ormawa**: Memantau saldo kas organisasi dan riwayat pengeluaran kas (read-only, tidak dapat mengubah atau menghapus data).
+
+---
+
+## 🔑 Akun Login Default Sistem
+
+| Role | Username | Password | Deskripsi Hak Akses |
 | :--- | :--- | :--- | :--- |
-| **Administrator / Bendahara Umum** | `admin` | `admin123` | Hak akses penuh mengelola kas, iuran, transaksi, dan pengaturan |
-| **Akses Tamu / Penguji** | *Langsung Jelajah* | - | Tersedia tombol jelajah langsung dari halaman login |
+| **Bendahara / Admin** | `admin` | `admin123` | Akses penuh seluruh modul dan verifikasi pembayaran kas |
+| **Anggota Mahasiswa** | `anggota` | `anggota123` | Akses khusus anggota (kirim bukti bayar & cek kas pribadi) |
+| **Anggota (via NIM)** | `2408101004` | `password123` | Login anggota menggunakan Nomor Induk Mahasiswa |
+| **Akses Tamu / Penguji** | *Langsung Jelajah* | - | Peninjauan langsung dari dashboard |
 
 ---
 

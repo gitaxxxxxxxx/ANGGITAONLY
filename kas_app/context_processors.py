@@ -1,4 +1,4 @@
-from .models import ProfilOrganisasi
+from .models import ProfilOrganisasi, PengajuanIuran, Anggota
 
 def profil_organisasi_processor(request):
     profil = ProfilOrganisasi.objects.first()
@@ -18,8 +18,28 @@ def profil_organisasi_processor(request):
             periode_kas='bulanan',
             saldo_awal=500000
         )
+
+    is_bendahara = True
+    is_anggota = False
+    user_anggota = None
+
+    if request.user.is_authenticated:
+        if hasattr(request.user, 'profil_anggota') and not request.user.is_staff:
+            is_bendahara = False
+            is_anggota = True
+            user_anggota = request.user.profil_anggota
+        else:
+            is_bendahara = True
+            is_anggota = False
+
+    pending_pengajuan_count = PengajuanIuran.objects.filter(status='menunggu').count() if is_bendahara else 0
+
     return {
         'profil_organisasi': profil,
         'app_title': 'SIMKAS ORMAWA',
-        'app_subtitle': 'Sistem Informasi Manajemen Kas Organisasi Kemahasiswaan Berbasis Web dengan Fitur Rekapitulasi Otomatis'
+        'app_subtitle': 'Sistem Informasi Manajemen Kas Organisasi Kemahasiswaan Berbasis Web dengan Fitur Rekapitulasi Otomatis',
+        'is_bendahara': is_bendahara,
+        'is_anggota': is_anggota,
+        'user_anggota': user_anggota,
+        'pending_pengajuan_count': pending_pengajuan_count,
     }

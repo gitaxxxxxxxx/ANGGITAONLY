@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     ProfilOrganisasi, Divisi, Anggota,
-    KategoriTransaksi, Transaksi, PeriodeKas, IuranKas
+    KategoriTransaksi, Transaksi, PeriodeKas, IuranKas, PengajuanIuran
 )
 
 @admin.register(ProfilOrganisasi)
@@ -39,4 +39,10 @@ class PeriodeKasAdmin(admin.ModelAdmin):
 class IuranKasAdmin(admin.ModelAdmin):
     list_display = ('anggota', 'periode', 'status', 'nominal_dibayar', 'tanggal_bayar', 'metode_pembayaran')
     list_filter = ('status', 'periode__tahun', 'periode__bulan', 'metode_pembayaran')
+    search_fields = ('anggota__nama', 'anggota__nim')
+
+@admin.register(PengajuanIuran)
+class PengajuanIuranAdmin(admin.ModelAdmin):
+    list_display = ('anggota', 'periode', 'nominal', 'metode_pembayaran', 'status', 'tanggal_pengajuan')
+    list_filter = ('status', 'metode_pembayaran', 'tanggal_pengajuan')
     search_fields = ('anggota__nama', 'anggota__nim')

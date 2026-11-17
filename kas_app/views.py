@@ -14,7 +14,7 @@ from django.core.paginator import Paginator
 
 from .models import (
     ProfilOrganisasi, Divisi, Anggota,
-    KategoriTransaksi, Transaksi, PeriodeKas, IuranKas
+    KategoriTransaksi, Transaksi, PeriodeKas, IuranKas, PengajuanIuran
 )
 
 
@@ -84,6 +84,10 @@ def sinkronisasi_iuran_anggota(tahun):
 # DASHBOARD
 # ==========================================
 def dashboard_view(request):
+    # Jika yang login adalah Anggota (Bukan Staff/Bendahara), arahkan ke Portal Khusus Anggota
+    if request.user.is_authenticated and hasattr(request.user, 'profil_anggota') and not request.user.is_staff:
+        return redirect('portal_anggota')
+
     profil = get_profil()
     current_year = timezone.now().year
 
@@ -1039,3 +1043,188 @@ def logout_view(request):
     logout(request)
     messages.info(request, "Anda telah keluar dari sistem.")
     return redirect('login')
+
+
+# ==========================================
+# PORTAL ANGGOTA MAHASISWA & KIRIM BUKTI KAS
+# ==========================================
+def portal_anggota_view(request):
+    profil = get_profil()
+    current_year = timezone.now().year
+    pastikan_periode_tahun(current_year)
+
+    # Dapatkan objek Anggota yang sedang login, atau fallback anggota pertama untuk preview
+    anggota = None
+    if request.user.is_authenticated and hasattr(request.user, 'profil_anggota'):
+        anggota = request.user.profil_anggota
+    else:
+        # Fallback untuk pengujian/preview
+        anggota = Anggota.objects.filter(nim='2408101004').first() or Anggota.objects.first()
+
+    sinkronisasi_iuran_anggota(current_year)
+
+    # Iuran Anggota Terkait Tahun Ini
+    iuran_list = IuranKas.objects.filter(
+        anggota=anggota,
+        periode__tahun=current_year
+    ).select_related('periode').order_by('periode__bulan')
+
+    total_lunas = iuran_list.filter(status='lunas').aggregate(Sum('nominal_dibayar'))['nominal_dibayar__sum'] or Decimal('0')
+    total_target = sum(i.periode.nominal for i in iuran_list)
+    total_tunggakan = total_target - total_lunas
+    persen_lunas = round((total_lunas / total_target * 100), 1) if total_target > 0 else 0
+
+    # Periode yang belum lunas (untuk opsi dropdown kirim bukti pembayaran)
+    periode_belum_lunas = [i.periode for i in iuran_list if i.status != 'lunas']
+
+    # Riwayat Pengajuan Bukti Pembayaran oleh Anggota Ini
+    pengajuan_list = PengajuanIuran.objects.filter(anggota=anggota).select_related('periode').order_by('-tanggal_pengajuan')
+
+    # Transparansi Kas Ormawa (Read-Only)
+    total_masuk = Transaksi.objects.filter(jenis='masuk').aggregate(Sum('nominal'))['nominal__sum'] or Decimal('0')
+    total_keluar = Transaksi.objects.filter(jenis='keluar').aggregate(Sum('nominal'))['nominal__sum'] or Decimal('0')
+    saldo_akhir_ormawa = profil.saldo_awal + total_masuk - total_keluar
+    transaksi_terbaru = Transaksi.objects.select_related('kategori', 'divisi_terkait').all()[:6]
+
+    context = {
+        'profil': profil,
+        'anggota': anggota,
+        'current_year': current_year,
+        'iuran_list': iuran_list,
+        'total_lunas': total_lunas,
+        'total_tunggakan': total_tunggakan,
+        'persen_lunas': persen_lunas,
+        'periode_belum_lunas': periode_belum_lunas,
+        'pengajuan_list': pengajuan_list,
+        'saldo_akhir_ormawa': saldo_akhir_ormawa,
+        'total_masuk': total_masuk,
+        'total_keluar': total_keluar,
+        'transaksi_terbaru': transaksi_terbaru,
+    }
+    return render(request, 'kas_app/portal_anggota.html', context)
+
+
+def kirim_bukti_iuran_view(request):
+    """Memungkinkan anggota mengunggah struk/bukti transfer kas rutin."""
+    if request.method == 'POST':
+        periode_id = request.POST.get('periode_id')
+        metode = request.POST.get('metode_pembayaran', 'Transfer Bank')
+        catatan = request.POST.get('catatan', '').strip()
+        bukti_file = request.FILES.get('bukti_transfer')
+
+        # Tentukan siapa anggotanya
+        if request.user.is_authenticated and hasattr(request.user, 'profil_anggota'):
+            anggota = request.user.profil_anggota
+        else:
+            # Fallback untuk demo
+            anggota_id = request.POST.get('anggota_id')
+            anggota = Anggota.objects.filter(id=anggota_id).first() or Anggota.objects.first()
+
+        try:
+            periode = PeriodeKas.objects.get(id=periode_id)
+            pengajuan = PengajuanIuran.objects.create(
+                anggota=anggota,
+                periode=periode,
+                nominal=periode.nominal,
+                metode_pembayaran=metode,
+                bukti_transfer=bukti_file,
+                catatan=catatan,
+                status='menunggu'
+            )
+            messages.success(
+                request,
+                f"Bukti pembayaran kas bulan {periode.nama_periode} berhasil dikirim ke Bendahara! "
+                "Status saat ini: Menunggu Verifikasi."
+            )
+        except Exception as e:
+            messages.error(request, f"Gagal mengirim bukti pembayaran: {str(e)}")
+
+    return redirect('portal_anggota')
+
+
+# ==========================================
+# VERIFIKASI BUKTI BAYAR (PANEL BENDAHARA)
+# ==========================================
+def verifikasi_iuran_list_view(request):
+    """Halaman bendahara untuk meninjau dan memverifikasi bukti bayar anggota."""
+    status_filter = request.GET.get('status', 'menunggu')
+    pengajuan_qs = PengajuanIuran.objects.select_related('anggota__divisi', 'periode').all()
+
+    if status_filter in ['menunggu', 'disetujui', 'ditolak']:
+        pengajuan_qs = pengajuan_qs.filter(status=status_filter)
+
+    count_menunggu = PengajuanIuran.objects.filter(status='menunggu').count()
+    count_disetujui = PengajuanIuran.objects.filter(status='disetujui').count()
+    count_ditolak = PengajuanIuran.objects.filter(status='ditolak').count()
+
+    context = {
+        'pengajuan_list': pengajuan_qs,
+        'status_filter': status_filter,
+        'count_menunggu': count_menunggu,
+        'count_disetujui': count_disetujui,
+        'count_ditolak': count_ditolak,
+    }
+    return render(request, 'kas_app/verifikasi_iuran.html', context)
+
+
+def verifikasi_iuran_action_view(request, pk):
+    """Aksi menyetujui atau menolak pengajuan bukti kas dari anggota."""
+    pengajuan = get_object_or_404(PengajuanIuran, pk=pk)
+    action = request.POST.get('action') # 'setujui' atau 'tolak'
+    catatan_bendahara = request.POST.get('catatan_bendahara', '').strip()
+
+    if action == 'setujui':
+        # 1. Update status pengajuan
+        pengajuan.status = 'disetujui'
+        pengajuan.catatan_bendahara = catatan_bendahara or 'Bukti transfer valid dan telah diverifikasi.'
+        pengajuan.diverifikasi_oleh = request.user if request.user.is_authenticated else None
+        pengajuan.diverifikasi_pada = timezone.now()
+        pengajuan.save()
+
+        # 2. Update IuranKas anggota menjadi lunas
+        iuran, _ = IuranKas.objects.get_or_create(
+            anggota=pengajuan.anggota,
+            periode=pengajuan.periode
+        )
+        iuran.status = 'lunas'
+        iuran.nominal_dibayar = pengajuan.nominal
+        iuran.tanggal_bayar = timezone.now().date()
+        iuran.metode_pembayaran = pengajuan.metode_pembayaran
+
+        # 3. Otomatis catat ke Transaksi Kas Masuk
+        kat_iuran, _ = KategoriTransaksi.objects.get_or_create(
+            nama='Iuran Kas Anggota',
+            defaults={'jenis': 'masuk', 'is_iuran_kas': True, 'deskripsi': 'Penerimaan kas rutin wajib anggota'}
+        )
+        trx = Transaksi.objects.create(
+            jenis='masuk',
+            kategori=kat_iuran,
+            nominal=pengajuan.nominal,
+            judul=f"Kas Anggota: {pengajuan.anggota.nama} ({pengajuan.periode.nama_periode})",
+            keterangan=f"Verifikasi transfer ({pengajuan.metode_pembayaran}) oleh Bendahara. Catatan: {pengajuan.catatan}",
+            tanggal=timezone.now().date(),
+            divisi_terkait=pengajuan.anggota.divisi,
+            bukti_transaksi=pengajuan.bukti_transfer,
+            dicatat_oleh=request.user if request.user.is_authenticated else None
+        )
+        iuran.transaksi = trx
+        iuran.save()
+
+        messages.success(
+            request,
+            f"Pembayaran kas {pengajuan.anggota.nama} ({pengajuan.periode.nama_periode}) BERHASIL DISETUJUI & diverifikasi Lunas!"
+        )
+
+    elif action == 'tolak':
+        pengajuan.status = 'ditolak'
+        pengajuan.catatan_bendahara = catatan_bendahara or 'Bukti pembayaran tidak terbaca atau nominal tidak sesuai.'
+        pengajuan.diverifikasi_oleh = request.user if request.user.is_authenticated else None
+        pengajuan.diverifikasi_pada = timezone.now()
+        pengajuan.save()
+
+        messages.warning(
+            request,
+            f"Pengajuan pembayaran dari {pengajuan.anggota.nama} ({pengajuan.periode.nama_periode}) telah DITOLAK."
+        )
+
+    return redirect('verifikasi_iuran_list')

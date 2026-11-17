@@ -1,0 +1,330 @@
+{% extends 'base.html' %}
+{% load kas_tags %}
+
+{% block title %}Portal Kas Mahasiswa{% endblock %}
+{% block header_title %}Portal Anggota - Transparansi Kas{% endblock %}
+{% block header_subtitle %}Pantau kepatuhan iuran kas Anda dan kirimkan bukti transfer pembayaran kas ormawa{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-6xl mx-auto">
+
+    <!-- Member Identity Welcome Banner -->
+    <div class="bg-gradient-to-r from-emerald-800 via-teal-800 to-slate-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="flex items-center space-x-4 z-10">
+            <div class="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white font-extrabold text-2xl flex items-center justify-center shadow-lg">
+                {{ anggota.nama|slice:":1" }}
+            </div>
+            <div>
+                <div class="flex items-center space-x-2">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/30 text-emerald-300 border border-emerald-400/30">
+                        Mahasiswa Anggota
+                    </span>
+                    <span class="text-xs text-emerald-200/80">{{ profil.singkatan }} {{ profil.periode_kepengurusan }}</span>
+                </div>
+                <h2 class="text-xl md:text-2xl font-bold tracking-tight mt-1">{{ anggota.nama }}</h2>
+                <div class="flex flex-wrap items-center gap-x-3 text-xs text-emerald-100/80 mt-1">
+                    <span class="font-mono">NIM: {{ anggota.nim }}</span>
+                    <span>&bull;</span>
+                    <span>{{ anggota.divisi.nama }} ({{ anggota.jabatan }})</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3 z-10">
+            <button onclick="document.getElementById('uploadSection').scrollIntoView({behavior: 'smooth'})" class="px-5 py-2.5 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold rounded-xl text-xs flex items-center shadow-md transition-all">
+                <i data-lucide="upload" class="w-4 h-4 mr-1.5 text-slate-950"></i> Kirim Bukti Transfer
+            </button>
+        </div>
+    </div>
+
+    <!-- Personal Dues Status Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Total Lunas -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Iuran Kas Anda (Lunas)</span>
+            <div class="mt-2">
+                <p class="text-2xl font-extrabold text-emerald-600">{{ total_lunas|rupiah }}</p>
+                <div class="w-full bg-slate-100 h-2 rounded-full mt-2 overflow-hidden">
+                    <div class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: {{ persen_lunas }}%"></div>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1.5">{{ persen_lunas }}% lunas (Tahun {{ current_year }})</p>
+            </div>
+        </div>
+
+        <!-- Sisa Tunggakan -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Sisa Tunggakan Kas</span>
+            <div class="mt-2">
+                <p class="text-2xl font-extrabold {% if total_tunggakan > 0 %}text-rose-600{% else %}text-emerald-600{% endif %}">
+                    {{ total_tunggakan|rupiah }}
+                </p>
+                <p class="text-[11px] text-slate-400 mt-1">
+                    {% if total_tunggakan > 0 %}Ada {{ periode_belum_lunas|length }} bulan belum disetor{% else %}Seluruh iuran kas lunas! 🎉{% endif %}
+                </p>
+            </div>
+        </div>
+
+        <!-- Transparansi Saldo Ormawa -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Kas Ormawa (Transparan)</span>
+                <i data-lucide="eye" class="w-4 h-4 text-emerald-600"></i>
+            </div>
+            <div class="mt-2">
+                <p class="text-2xl font-extrabold text-slate-800">{{ saldo_akhir_ormawa|rupiah }}</p>
+                <p class="text-[11px] text-emerald-600 font-medium mt-1">Saldo riil di bendahara</p>
+            </div>
+        </div>
+
+        <!-- Tarif Iuran Bulanan -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Tarif Kas Rutin</span>
+            <div class="mt-2">
+                <p class="text-2xl font-extrabold text-slate-800">{{ profil.nominal_kas_wajib|rupiah }}</p>
+                <p class="text-[11px] text-slate-400 mt-1">Per mahasiswa / bulan</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grid: Upload Bukti & Matrix Status 12 Bulan -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6" id="uploadSection">
+
+        <!-- Form Kirim Bukti Transfer Pembayaran Kas (Kiri) -->
+        <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-5">
+            <div class="flex items-center space-x-2.5 pb-4 border-b border-slate-100">
+                <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                    <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-base text-slate-800">Kirim Bukti Bayar Kas</h3>
+                    <p class="text-xs text-slate-500">Upload bukti transfer bank atau scan QRIS</p>
+                </div>
+            </div>
+
+            {% if periode_belum_lunas %}
+            <form action="{% url 'kirim_bukti_iuran' %}" method="POST" enctype="multipart/form-data" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="anggota_id" value="{{ anggota.id }}">
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Bulan Tagihan <span class="text-rose-500">*</span></label>
+                    <select name="periode_id" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        {% for p in periode_belum_lunas %}
+                        <option value="{{ p.id }}">{{ p.nama_periode }} - {{ p.nominal|rupiah }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Metode Pembayaran <span class="text-rose-500">*</span></label>
+                    <select name="metode_pembayaran" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        <option value="Transfer Bank">Transfer Bank (BCA / Mandiri / BNI / BRI)</option>
+                        <option value="QRIS">QRIS Kas Ormawa</option>
+                        <option value="Tunai">Tunai / Titip Langsung</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Upload Bukti Transfer / Resi / Struk <span class="text-rose-500">*</span></label>
+                    <div class="border-2 border-dashed border-slate-200 hover:border-emerald-500 rounded-xl p-4 text-center cursor-pointer transition-colors">
+                        <input type="file" name="bukti_transfer" id="buktiTransferInput" required accept="image/*,.pdf" class="hidden" onchange="previewUploadName(this)">
+                        <label for="buktiTransferInput" class="cursor-pointer block">
+                            <i data-lucide="image" class="w-8 h-8 text-slate-400 mx-auto mb-1"></i>
+                            <span class="text-xs font-medium text-slate-600 block">Klik untuk memilih foto screenshot/bukti transfer</span>
+                            <span class="text-[10px] text-slate-400 block mt-0.5">Format JPG, PNG, atau PDF (Maks. 5MB)</span>
+                        </label>
+                        <p id="buktiTransferName" class="text-xs font-bold text-emerald-600 mt-2 hidden"></p>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Catatan / Keterangan (Opsional)</label>
+                    <textarea name="catatan" rows="2" placeholder="Contoh: Transfer via rekening a.n. Dimas Arya jam 14:00" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+                </div>
+
+                <button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center space-x-1.5">
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                    <span>Kirim ke Bendahara</span>
+                </button>
+            </form>
+            {% else %}
+            <div class="p-6 text-center text-slate-500 bg-emerald-50/50 rounded-xl border border-emerald-100">
+                <i data-lucide="check-circle-2" class="w-10 h-10 text-emerald-500 mx-auto mb-2"></i>
+                <h4 class="font-bold text-slate-800 text-sm">Tidak Ada Tagihan Kas</h4>
+                <p class="text-xs text-slate-500 mt-1">Seluruh iuran kas rutin Anda pada tahun {{ current_year }} sudah lunas.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Matriks 12 Bulan Status Kas Saya (Kanan) -->
+        <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
+                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-base text-slate-800">Status Iuran Kas Anda ({{ current_year }})</h3>
+                        <p class="text-xs text-slate-500">Cek status verifikasi pembayaran kas setiap bulan</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid 12 Bulan -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {% for iuran in iuran_list %}
+                <div class="p-3 rounded-xl border transition-all {% if iuran.status == 'lunas' %}bg-emerald-50/50 border-emerald-200 text-emerald-900{% else %}bg-slate-50 border-slate-200 text-slate-700{% endif %}">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-xs">{{ iuran.periode.nama_periode|slice:":3" }}</span>
+                        {% if iuran.status == 'lunas' %}
+                        <span class="p-1 rounded-full bg-emerald-100 text-emerald-700">
+                            <i data-lucide="check" class="w-3 h-3 stroke-[3]"></i>
+                        </span>
+                        {% else %}
+                        <span class="p-1 rounded-full bg-rose-100 text-rose-600">
+                            <i data-lucide="x" class="w-3 h-3 stroke-[2.5]"></i>
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="mt-2 text-xs">
+                        <p class="font-mono font-semibold text-[11px]">{{ iuran.periode.nominal|rupiah }}</p>
+                        <p class="text-[10px] mt-0.5 {% if iuran.status == 'lunas' %}text-emerald-700 font-bold{% else %}text-rose-600 font-medium{% endif %}">
+                            {% if iuran.status == 'lunas' %}Lunas ({{ iuran.tanggal_bayar|date:"d/m" }}){% else %}Belum Bayar{% endif %}
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Riwayat Pengajuan Bukti Pembayaran Saya -->
+            <div class="pt-4 border-t border-slate-100">
+                <h4 class="font-bold text-xs text-slate-700 uppercase tracking-wider mb-2 flex items-center">
+                    <i data-lucide="history" class="w-3.5 h-3.5 mr-1 text-slate-500"></i> Riwayat Pengajuan Bukti Pembayaran
+                </h4>
+
+                <div class="space-y-2 max-h-48 overflow-y-auto">
+                    {% for p in pengajuan_list %}
+                    <div class="p-3 rounded-xl border border-slate-100 bg-slate-50/70 flex items-center justify-between text-xs">
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <span class="font-bold text-slate-800">{{ p.periode.nama_periode }}</span>
+                                <span class="text-slate-400">&bull;</span>
+                                <span class="font-semibold text-slate-600">{{ p.metode_pembayaran }}</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Dikirim: {{ p.tanggal_pengajuan|date:"d M Y H:i" }}</p>
+                            {% if p.catatan_bendahara %}
+                            <p class="text-[10px] text-amber-700 mt-1 italic font-medium">Catatan Bendahara: {{ p.catatan_bendahara }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="text-right">
+                            {% if p.status == 'menunggu' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                                <i data-lucide="clock" class="w-3 h-3 mr-1"></i> Menunggu Verifikasi
+                            </span>
+                            {% elif p.status == 'disetujui' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                <i data-lucide="check-circle" class="w-3 h-3 mr-1"></i> Disetujui
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
+                                <i data-lucide="x-circle" class="w-3 h-3 mr-1"></i> Ditolak
+                            </span>
+                            {% endif %}
+                            {% if p.bukti_transfer %}
+                            <div class="mt-1">
+                                <a href="{{ p.bukti_transfer.url }}" target="_blank" class="text-[10px] text-emerald-600 hover:underline font-semibold">
+                                    Lihat Bukti Foto
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-xs text-slate-400 italic text-center py-4">Belum ada riwayat pengajuan bukti pembayaran.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transparansi Mutasi Kas Ormawa (Read Only) -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                    <i data-lucide="shield-check" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-base text-slate-800">Transparansi Penggunaan Kas Ormawa (Read-Only)</h3>
+                    <p class="text-xs text-slate-500">Anggota dapat memantau keterbukaan aliran kas ormawa</p>
+                </div>
+            </div>
+            <div class="text-xs font-semibold text-slate-500">
+                Pemasukan: <span class="text-emerald-600 font-bold">+{{ total_masuk|rupiah }}</span> | Pengeluaran: <span class="text-rose-600 font-bold">-{{ total_keluar|rupiah }}</span>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-500 font-semibold uppercase tracking-wider border-b border-slate-100">
+                    <tr>
+                        <th class="py-3 px-4">Tanggal</th>
+                        <th class="py-3 px-4">Judul / Kegiatan</th>
+                        <th class="py-3 px-4">Kategori & Divisi</th>
+                        <th class="py-3 px-4 text-right">Nominal</th>
+                        <th class="py-3 px-4 text-center">Bukti Nota</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-700">
+                    {% for trx in transaksi_terbaru %}
+                    <tr class="hover:bg-slate-50/70 transition-colors">
+                        <td class="py-3 px-4 text-slate-500 whitespace-nowrap">{{ trx.tanggal|date:"d M Y" }}</td>
+                        <td class="py-3 px-4 font-bold text-slate-800">{{ trx.judul }}</td>
+                        <td class="py-3 px-4 whitespace-nowrap">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700">
+                                {{ trx.kategori.nama }}
+                            </span>
+                            {% if trx.divisi_terkait %}
+                            <span class="px-1.5 py-0.5 rounded text-[10px] bg-sky-50 text-sky-700 font-bold ml-1">
+                                {{ trx.divisi_terkait.kode }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-right font-bold whitespace-nowrap {% if trx.jenis == 'masuk' %}text-emerald-600{% else %}text-rose-600{% endif %}">
+                            {% if trx.jenis == 'masuk' %}+{% else %}-{% endif %}{{ trx.nominal|rupiah }}
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            {% if trx.bukti_transaksi %}
+                            <a href="{{ trx.bukti_transaksi.url }}" target="_blank" class="text-emerald-600 hover:underline font-bold text-[11px]">
+                                Ada Nota
+                            </a>
+                            {% else %}
+                            <span class="text-slate-300">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="py-6 text-center text-slate-400">Belum ada transaksi yang dicatat.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function previewUploadName(input) {
+        const display = document.getElementById('buktiTransferName');
+        if (input.files && input.files[0]) {
+            display.innerText = 'File dipilih: ' + input.files[0].name;
+            display.classList.remove('hidden');
+        }
+    }
+</script>
+{% endblock %}

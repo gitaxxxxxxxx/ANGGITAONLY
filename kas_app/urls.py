@@ -22,6 +22,14 @@ urlpatterns = [
     path('iuran/toggle-status/<int:iuran_id>/', views.iuran_toggle_status, name='iuran_toggle_status'),
     path('iuran/generate-periode/<int:tahun>/', views.generate_periode_tahunan, name='generate_periode_tahunan'),
 
+    # Verifikasi Bukti Pembayaran (Panel Bendahara)
+    path('verifikasi-iuran/', views.verifikasi_iuran_list_view, name='verifikasi_iuran_list'),
+    path('verifikasi-iuran/<int:pk>/action/', views.verifikasi_iuran_action_view, name='verifikasi_iuran_action'),
+
+    # Portal Mahasiswa / Anggota (Kirim Bukti & Pantau Kas)
+    path('portal-anggota/', views.portal_anggota_view, name='portal_anggota'),
+    path('portal-anggota/kirim-bukti/', views.kirim_bukti_iuran_view, name='kirim_bukti_iuran'),
+
     # Rekapitulasi Otomatis & LPJ
     path('rekapitulasi/', views.rekapitulasi_view, name='rekapitulasi'),
     path('rekapitulasi/lpj/', views.cetak_lpj_view, name='cetak_lpj'),

@@ -9,7 +9,7 @@ django.setup()
 from django.contrib.auth.models import User
 from kas_app.models import (
     ProfilOrganisasi, Divisi, Anggota,
-    KategoriTransaksi, Transaksi, PeriodeKas, IuranKas
+    KategoriTransaksi, Transaksi, PeriodeKas, IuranKas, PengajuanIuran
 )
 
 def run_seed():
@@ -119,9 +119,34 @@ def run_seed():
         ('2508101019', 'Putri Ayu Wandira', 'SOSMA', 'Staff Pengabdian', 2025, '081366667777'),
     ]
 
+    # User khusus demo role Anggota: anggota / anggota123
+    user_anggota_demo, _ = User.objects.get_or_create(username='anggota', defaults={
+        'first_name': 'Dimas Arya',
+        'last_name': 'Nugraha',
+        'email': 'dimas@mahasiswa.univ.ac.id',
+        'is_staff': False,
+        'is_superuser': False
+    })
+    user_anggota_demo.set_password('anggota123')
+    user_anggota_demo.save()
+
     anggota_objs = []
     for nim, nama, div_kode, jab, angk, hp in anggota_raw:
-        ag, _ = Anggota.objects.get_or_create(
+        # Buat user per mahasiswa
+        if nim == '2408101004':
+            u_obj = user_anggota_demo
+        else:
+            u_obj, _ = User.objects.get_or_create(username=nim, defaults={
+                'first_name': nama.split()[0],
+                'last_name': ' '.join(nama.split()[1:]),
+                'email': f"{nim}@mahasiswa.univ.ac.id",
+                'is_staff': False,
+                'is_superuser': False
+            })
+            u_obj.set_password('password123')
+            u_obj.save()
+
+        ag, created = Anggota.objects.get_or_create(
             nim=nim,
             defaults={
                 'nama': nama,
@@ -131,11 +156,15 @@ def run_seed():
                 'no_hp': hp,
                 'email': f"{nim}@mahasiswa.univ.ac.id",
                 'status_aktif': True,
-                'tanggal_bergabung': date(2026, 1, 10)
+                'tanggal_bergabung': date(2026, 1, 10),
+                'user': u_obj
             }
         )
+        if not created and not ag.user:
+            ag.user = u_obj
+            ag.save()
         anggota_objs.append(ag)
-    print(f"✅ {len(anggota_objs)} Anggota mahasiswa berhasil didaftarkan.")
+    print(f"✅ {len(anggota_objs)} Anggota mahasiswa berhasil didaftarkan & akun login dibuat.")
 
     # 6. Periode Kas 2026 (Januari - Desember)
     bulan_list = [
@@ -251,6 +280,33 @@ def run_seed():
         )
     print(f"✅ {len(transaksi_sample)} Transaksi operasional kas berhasil dicatat.")
 
+    # 9. Sample Pengajuan Pembayaran Iuran dari Anggota (Menunggu Verifikasi Bendahara)
+    PengajuanIuran.objects.all().delete()
+    ag_dimas = Anggota.objects.filter(nim='2408101004').first()
+    p_okt = PeriodeKas.objects.filter(tahun=2026, bulan=10).first()
+    if ag_dimas and p_okt:
+        PengajuanIuran.objects.create(
+            anggota=ag_dimas,
+            periode=p_okt,
+            nominal=Decimal('10000'),
+            metode_pembayaran='Transfer Bank',
+            catatan='Sudah transfer via Bank BCA a.n. Dimas Arya. Mohon verifikasinya min, terima kasih!',
+            status='menunggu'
+        )
+
+    ag_anisa = Anggota.objects.filter(nim='2408101012').first()
+    p_sep = PeriodeKas.objects.filter(tahun=2026, bulan=9).first()
+    if ag_anisa and p_sep:
+        PengajuanIuran.objects.create(
+            anggota=ag_anisa,
+            periode=p_sep,
+            nominal=Decimal('10000'),
+            metode_pembayaran='QRIS',
+            catatan='Pembayaran kas bulan September via scan QRIS resmi BEM.',
+            status='menunggu'
+        )
+    print("✅ 2 Pengajuan iuran kas anggota (Menunggu Verifikasi) siap diuji.")
+
     # Hitung Saldo Akhir
     total_in = Transaksi.objects.filter(jenis='masuk').aggregate(django.db.models.Sum('nominal'))['nominal__sum'] or Decimal('0')
     total_out = Transaksi.objects.filter(jenis='keluar').aggregate(django.db.models.Sum('nominal'))['nominal__sum'] or Decimal('0')
@@ -262,7 +318,8 @@ def run_seed():
     print(f"📈 Total Kas Masuk: Rp {total_in:,.0f}")
     print(f"📉 Total Kas Keluar: Rp {total_out:,.0f}")
     print(f"💎 Saldo Akhir Kas: Rp {saldo_akhir:,.0f}")
-    print(f"👤 Login Admin: admin / admin123")
+    print(f"👤 Login Bendahara : admin / admin123")
+    print(f"👤 Login Anggota   : anggota / anggota123 (atau NIM: 2408101004 / password123)")
     print("==================================================")
 
 if __name__ == '__main__':

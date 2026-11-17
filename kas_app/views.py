@@ -243,6 +243,10 @@ def transaksi_list_view(request):
 
 
 def transaksi_create_view(request):
+    if request.user.is_authenticated and hasattr(request.user, 'profil_anggota') and not request.user.is_staff:
+        messages.error(request, "Akses ditolak. Anggota hanya dapat mengunggah bukti transfer kas.")
+        return redirect('portal_anggota')
+
     if request.method == 'POST':
         jenis = request.POST.get('jenis')
         kategori_id = request.POST.get('kategori')
@@ -255,6 +259,14 @@ def transaksi_create_view(request):
 
         try:
             kategori = KategoriTransaksi.objects.get(id=kategori_id)
+            if kategori.is_iuran_kas:
+                messages.error(
+                    request,
+                    "Pemasukan 'Iuran Kas Anggota' tidak dapat dicatat manual. "
+                    "Iuran kas tercatat otomatis saat Admin meng-ACC bukti transfer anggota."
+                )
+                return redirect('transaksi_list')
+
             divisi = Divisi.objects.filter(id=divisi_id).first() if divisi_id else None
 
             transaksi = Transaksi.objects.create(
@@ -268,13 +280,14 @@ def transaksi_create_view(request):
                 bukti_transaksi=bukti_file,
                 dicatat_oleh=request.user if request.user.is_authenticated else None
             )
-            messages.success(request, f"Transaksi '{transaksi.judul}' senilai Rp {transaksi.nominal:,.0f} berhasil dicatat!")
+            messages.success(request, f"Transaksi operasional '{transaksi.judul}' senilai Rp {transaksi.nominal:,.0f} berhasil dicatat!")
         except Exception as e:
             messages.error(request, f"Gagal mencatat transaksi: {str(e)}")
 
         return redirect('transaksi_list')
 
-    kategori_list = KategoriTransaksi.objects.all()
+    # Hanya tampilkan kategori operasional (bukan iuran kas anggota)
+    kategori_list = KategoriTransaksi.objects.filter(is_iuran_kas=False)
     divisi_list = Divisi.objects.all()
     return render(request, 'kas_app/transaksi_form.html', {
         'kategori_list': kategori_list,
@@ -285,11 +298,24 @@ def transaksi_create_view(request):
 
 
 def transaksi_update_view(request, pk):
+    if request.user.is_authenticated and hasattr(request.user, 'profil_anggota') and not request.user.is_staff:
+        messages.error(request, "Akses ditolak.")
+        return redirect('portal_anggota')
+
     transaksi = get_object_or_404(Transaksi, pk=pk)
+    if transaksi.kategori.is_iuran_kas:
+        messages.error(request, "Transaksi iuran kas yang dihasilkan dari verifikasi (ACC) bukti transfer tidak dapat diedit manual.")
+        return redirect('transaksi_list')
+
     if request.method == 'POST':
         try:
+            kategori = KategoriTransaksi.objects.get(id=request.POST.get('kategori'))
+            if kategori.is_iuran_kas:
+                messages.error(request, "Kategori tidak dapat diubah ke Iuran Kas.")
+                return redirect('transaksi_list')
+
             transaksi.jenis = request.POST.get('jenis')
-            transaksi.kategori_id = request.POST.get('kategori')
+            transaksi.kategori = kategori
             nominal_str = request.POST.get('nominal', '0').replace('.', '').replace(',', '')
             transaksi.nominal = Decimal(nominal_str)
             transaksi.judul = request.POST.get('judul', '').strip()
@@ -307,7 +333,7 @@ def transaksi_update_view(request, pk):
         except Exception as e:
             messages.error(request, f"Terjadi kesalahan: {str(e)}")
 
-    kategori_list = KategoriTransaksi.objects.all()
+    kategori_list = KategoriTransaksi.objects.filter(is_iuran_kas=False)
     divisi_list = Divisi.objects.all()
     return render(request, 'kas_app/transaksi_form.html', {
         'transaksi': transaksi,
@@ -376,6 +402,16 @@ def iuran_matrix_view(request):
     if divisi_filter:
         anggota_qs = anggota_qs.filter(divisi_id=divisi_filter)
 
+    # Ambil seluruh pengajuan iuran anggota pada tahun terkait
+    pengajuan_qs = PengajuanIuran.objects.filter(
+        periode__tahun=tahun
+    ).select_related('periode', 'anggota').order_by('tanggal_pengajuan')
+
+    # Mapping: (anggota_id, periode_id) -> objek PengajuanIuran terbaru
+    pengajuan_dict = {}
+    for pj in pengajuan_qs:
+        pengajuan_dict[(pj.anggota_id, pj.periode_id)] = pj
+
     matrix_data = []
     total_kolom_bulan = {p.id: Decimal('0') for p in periode_list}
 
@@ -388,23 +424,73 @@ def iuran_matrix_view(request):
 
         for p in periode_list:
             record = iuran_records.get(p.id)
-            if record and record.status == 'lunas':
+            pj = pengajuan_dict.get((ag.id, p.id))
+
+            # Status 1: HIJAU (Lunas & Di-ACC Admin)
+            if (record and record.status == 'lunas') or (pj and pj.status == 'disetujui'):
+                nominal_bayar = record.nominal_dibayar if (record and record.nominal_dibayar > 0) else p.nominal
+                tgl_bayar = record.tanggal_bayar if (record and record.tanggal_bayar) else (pj.diverifikasi_pada.date() if pj and pj.diverifikasi_pada else None)
+                bukti_url = ""
+                if pj and pj.bukti_transfer:
+                    bukti_url = pj.bukti_transfer.url
+                elif record and record.transaksi and record.transaksi.bukti_transaksi:
+                    bukti_url = record.transaksi.bukti_transaksi.url
+
                 bulan_status.append({
                     'periode_id': p.id,
-                    'iuran_id': record.id,
+                    'periode_nama': p.nama_periode,
+                    'iuran_id': record.id if record else None,
+                    'pengajuan_id': pj.id if pj else None,
                     'status': 'lunas',
-                    'nominal': record.nominal_dibayar,
-                    'tanggal_bayar': record.tanggal_bayar,
+                    'nominal': nominal_bayar,
+                    'tanggal_bayar': tgl_bayar,
+                    'bukti_url': bukti_url,
+                    'metode': pj.metode_pembayaran if pj else (record.metode_pembayaran if record else 'Transfer Bank'),
                 })
-                total_dibayar += record.nominal_dibayar
-                total_kolom_bulan[p.id] += record.nominal_dibayar
+                total_dibayar += nominal_bayar
+                total_kolom_bulan[p.id] += nominal_bayar
+
+            # Status 2: KUNING (Menunggu ACC Admin)
+            elif pj and pj.status == 'menunggu':
+                bukti_url = pj.bukti_transfer.url if pj.bukti_transfer else ""
+                bulan_status.append({
+                    'periode_id': p.id,
+                    'periode_nama': p.nama_periode,
+                    'iuran_id': record.id if record else None,
+                    'pengajuan_id': pj.id,
+                    'status': 'menunggu',
+                    'nominal': pj.nominal,
+                    'tanggal_pengajuan': pj.tanggal_pengajuan,
+                    'bukti_url': bukti_url,
+                    'metode': pj.metode_pembayaran,
+                    'catatan': pj.catatan,
+                })
+                total_tunggakan += p.nominal
+                bulan_nunggak_names.append(p.nama_periode.split()[0])
+
+            # Status 3: MERAH Ditolak (Bukti transfer ditolak oleh Admin)
+            elif pj and pj.status == 'ditolak':
+                bulan_status.append({
+                    'periode_id': p.id,
+                    'periode_nama': p.nama_periode,
+                    'iuran_id': record.id if record else None,
+                    'pengajuan_id': pj.id,
+                    'status': 'ditolak',
+                    'nominal': p.nominal,
+                    'alasan_tolak': pj.catatan_bendahara or 'Bukti tidak valid atau nominal kurang',
+                })
+                total_tunggakan += p.nominal
+                bulan_nunggak_names.append(p.nama_periode.split()[0])
+
+            # Status 4: MERAH Belum Bayar (Belum kirim bukti TF sama sekali)
             else:
                 bulan_status.append({
                     'periode_id': p.id,
+                    'periode_nama': p.nama_periode,
                     'iuran_id': record.id if record else None,
-                    'status': 'belum_lunas',
+                    'pengajuan_id': None,
+                    'status': 'belum_bayar',
                     'nominal': p.nominal,
-                    'tanggal_bayar': None,
                 })
                 total_tunggakan += p.nominal
                 bulan_nunggak_names.append(p.nama_periode.split()[0])
@@ -422,7 +508,7 @@ def iuran_matrix_view(request):
                 f"Mengingatkan dari Bendahara {profil.nama_organisasi}.\n"
                 f"Iuran kas ormawa untuk bulan ({daftar_bulan}) "
                 f"dengan total tagihan sebesar *Rp {total_tunggakan:,.0f}* belum tercatat.\n\n"
-                f"Mohon konfirmasi atau melakukan pembayaran ya. Terima kasih banyak! 🙏"
+                f"Silakan lakukan transfer dan kirimkan bukti transfer melalui portal kas ormawa ya. Terima kasih! 🙏"
             )
             wa_encoded = urllib.parse.quote(pesan)
             wa_url = f"https://wa.me/{ag.whatsapp_clean}?text={wa_encoded}"
@@ -452,6 +538,7 @@ def iuran_matrix_view(request):
 
     divisi_list = Divisi.objects.all()
     tahun_options = [2025, 2026, 2027]
+    pending_count = PengajuanIuran.objects.filter(periode__tahun=tahun, status='menunggu').count()
 
     context = {
         'profil': profil,
@@ -465,95 +552,28 @@ def iuran_matrix_view(request):
         'grand_total_terkumpul': grand_total_terkumpul,
         'grand_total_tunggakan': grand_total_tunggakan,
         'persen_tercapai': persen_tercapai,
+        'pending_count': pending_count,
     }
     return render(request, 'kas_app/iuran_matrix.html', context)
 
 
 def iuran_toggle_status(request, iuran_id):
-    """Mengubah status iuran antara lunas dan belum lunas secara langsung."""
-    iuran = get_object_or_404(IuranKas, pk=iuran_id)
-
-    if iuran.status == 'lunas':
-        # Ubah jadi belum lunas
-        if iuran.transaksi:
-            iuran.transaksi.delete()
-            iuran.transaksi = None
-        iuran.status = 'belum_lunas'
-        iuran.nominal_dibayar = Decimal('0')
-        iuran.tanggal_bayar = None
-        iuran.save()
-        messages.info(request, f"Status iuran {iuran.anggota.nama} ({iuran.periode.nama_periode}) diubah menjadi Belum Lunas.")
-    else:
-        # Ubah jadi lunas
-        kat_iuran, _ = KategoriTransaksi.objects.get_or_create(
-            nama='Iuran Kas Anggota',
-            defaults={'jenis': 'masuk', 'is_iuran_kas': True, 'deskripsi': 'Penerimaan kas rutin wajib anggota'}
-        )
-        trx = Transaksi.objects.create(
-            jenis='masuk',
-            kategori=kat_iuran,
-            nominal=iuran.periode.nominal,
-            judul=f"Kas Anggota: {iuran.anggota.nama} ({iuran.periode.nama_periode})",
-            keterangan=f"Pembayaran iuran rutin {iuran.periode.nama_periode} oleh {iuran.anggota.nama} ({iuran.anggota.nim})",
-            tanggal=timezone.now().date(),
-            divisi_terkait=iuran.anggota.divisi,
-            dicatat_oleh=request.user if request.user.is_authenticated else None
-        )
-        iuran.status = 'lunas'
-        iuran.nominal_dibayar = iuran.periode.nominal
-        iuran.tanggal_bayar = timezone.now().date()
-        iuran.transaksi = trx
-        iuran.save()
-        messages.success(request, f"Iuran {iuran.anggota.nama} ({iuran.periode.nama_periode}) berhasil diverifikasi Lunas!")
-
-    referer = request.META.get('HTTP_REFERER')
-    return redirect(referer or 'iuran_matrix')
+    """Menolak bypass toggle iuran tanpa bukti transfer dari anggota."""
+    messages.warning(
+        request,
+        "Iuran kas rutin tidak dapat diubah langsung secara manual. "
+        "Status hanya berubah menjadi HIJAU jika anggota mengirimkan bukti transfer dan disetujui (ACC) oleh Admin."
+    )
+    return redirect('iuran_matrix')
 
 
 def iuran_bayar_cepat(request):
-    """Pembayaran cepat iuran untuk satu anggota beberapa bulan sekaligus."""
-    if request.method == 'POST':
-        anggota_id = request.POST.get('anggota_id')
-        periode_ids = request.POST.getlist('periode_ids')
-        metode = request.POST.get('metode_pembayaran', 'Tunai')
-
-        anggota = get_object_or_404(Anggota, pk=anggota_id)
-        kat_iuran, _ = KategoriTransaksi.objects.get_or_create(
-            nama='Iuran Kas Anggota',
-            defaults={'jenis': 'masuk', 'is_iuran_kas': True, 'deskripsi': 'Penerimaan kas rutin wajib anggota'}
-        )
-
-        total_bayar = Decimal('0')
-        periode_names = []
-
-        for p_id in periode_ids:
-            iuran = IuranKas.objects.filter(anggota=anggota, periode_id=p_id).first()
-            if iuran and iuran.status != 'lunas':
-                trx = Transaksi.objects.create(
-                    jenis='masuk',
-                    kategori=kat_iuran,
-                    nominal=iuran.periode.nominal,
-                    judul=f"Kas Anggota: {anggota.nama} ({iuran.periode.nama_periode})",
-                    keterangan=f"Pembayaran kas rutin via {metode}",
-                    tanggal=timezone.now().date(),
-                    divisi_terkait=anggota.divisi,
-                    dicatat_oleh=request.user if request.user.is_authenticated else None
-                )
-                iuran.status = 'lunas'
-                iuran.nominal_dibayar = iuran.periode.nominal
-                iuran.tanggal_bayar = timezone.now().date()
-                iuran.metode_pembayaran = metode
-                iuran.transaksi = trx
-                iuran.save()
-                total_bayar += iuran.nominal_dibayar
-                periode_names.append(iuran.periode.nama_periode)
-
-        messages.success(
-            request,
-            f"Berhasil mencatat pembayaran kas {anggota.nama} untuk {len(periode_names)} periode "
-            f"({', '.join(periode_names)}) total Rp {total_bayar:,.0f}."
-        )
-
+    """Menolak bypass setor cepat tanpa bukti transfer anggota."""
+    messages.warning(
+        request,
+        "Fitur setor manual dinonaktifkan. Setiap iuran kas wajib melalui pengunggahan bukti transfer oleh anggota "
+        "dan verifikasi (ACC) oleh Admin."
+    )
     return redirect('iuran_matrix')
 
 
@@ -1074,11 +1094,38 @@ def portal_anggota_view(request):
     total_tunggakan = total_target - total_lunas
     persen_lunas = round((total_lunas / total_target * 100), 1) if total_target > 0 else 0
 
-    # Periode yang belum lunas (untuk opsi dropdown kirim bukti pembayaran)
-    periode_belum_lunas = [i.periode for i in iuran_list if i.status != 'lunas']
-
     # Riwayat Pengajuan Bukti Pembayaran oleh Anggota Ini
     pengajuan_list = PengajuanIuran.objects.filter(anggota=anggota).select_related('periode').order_by('-tanggal_pengajuan')
+    pengajuan_dict = {pj.periode_id: pj for pj in pengajuan_list}
+
+    # Buat status visual per bulan untuk dashboard anggota (Hijau / Kuning / Merah)
+    iuran_display_list = []
+    periode_ids_sudah_diajukan_atau_lunas = set()
+
+    for i in iuran_list:
+        pj = pengajuan_dict.get(i.periode_id)
+        if i.status == 'lunas':
+            st = 'lunas'
+            periode_ids_sudah_diajukan_atau_lunas.add(i.periode_id)
+        elif pj and pj.status == 'menunggu':
+            st = 'menunggu'
+            periode_ids_sudah_diajukan_atau_lunas.add(i.periode_id)
+        elif pj and pj.status == 'ditolak':
+            st = 'ditolak'
+        else:
+            st = 'belum_lunas'
+
+        iuran_display_list.append({
+            'iuran': i,
+            'status': st,
+            'pengajuan': pj,
+        })
+
+    # Periode yang belum lunas dan belum ada pengajuan pending
+    periode_belum_lunas = [
+        i.periode for i in iuran_list
+        if i.periode_id not in periode_ids_sudah_diajukan_atau_lunas
+    ]
 
     # Transparansi Kas Ormawa (Read-Only)
     total_masuk = Transaksi.objects.filter(jenis='masuk').aggregate(Sum('nominal'))['nominal__sum'] or Decimal('0')
@@ -1090,7 +1137,7 @@ def portal_anggota_view(request):
         'profil': profil,
         'anggota': anggota,
         'current_year': current_year,
-        'iuran_list': iuran_list,
+        'iuran_list': iuran_display_list,
         'total_lunas': total_lunas,
         'total_tunggakan': total_tunggakan,
         'persen_lunas': persen_lunas,
@@ -1133,8 +1180,8 @@ def kirim_bukti_iuran_view(request):
             )
             messages.success(
                 request,
-                f"Bukti pembayaran kas bulan {periode.nama_periode} berhasil dikirim ke Bendahara! "
-                "Status saat ini: Menunggu Verifikasi."
+                f"Bukti pembayaran kas bulan {periode.nama_periode} berhasil dikirim ke Admin! "
+                "Status di matriks kini KUNING (Menunggu ACC)."
             )
         except Exception as e:
             messages.error(request, f"Gagal mengirim bukti pembayaran: {str(e)}")
@@ -1147,6 +1194,10 @@ def kirim_bukti_iuran_view(request):
 # ==========================================
 def verifikasi_iuran_list_view(request):
     """Halaman bendahara untuk meninjau dan memverifikasi bukti bayar anggota."""
+    if request.user.is_authenticated and hasattr(request.user, 'profil_anggota') and not request.user.is_staff:
+        messages.error(request, "Akses ditolak. Fitur ini hanya untuk Admin/Bendahara.")
+        return redirect('portal_anggota')
+
     status_filter = request.GET.get('status', 'menunggu')
     pengajuan_qs = PengajuanIuran.objects.select_related('anggota__divisi', 'periode').all()
 
@@ -1168,7 +1219,11 @@ def verifikasi_iuran_list_view(request):
 
 
 def verifikasi_iuran_action_view(request, pk):
-    """Aksi menyetujui atau menolak pengajuan bukti kas dari anggota."""
+    """Aksi menyetujui (ACC) atau menolak pengajuan bukti kas dari anggota."""
+    if request.user.is_authenticated and hasattr(request.user, 'profil_anggota') and not request.user.is_staff:
+        messages.error(request, "Akses ditolak.")
+        return redirect('portal_anggota')
+
     pengajuan = get_object_or_404(PengajuanIuran, pk=pk)
     action = request.POST.get('action') # 'setujui' atau 'tolak'
     catatan_bendahara = request.POST.get('catatan_bendahara', '').strip()
@@ -1176,7 +1231,7 @@ def verifikasi_iuran_action_view(request, pk):
     if action == 'setujui':
         # 1. Update status pengajuan
         pengajuan.status = 'disetujui'
-        pengajuan.catatan_bendahara = catatan_bendahara or 'Bukti transfer valid dan telah diverifikasi.'
+        pengajuan.catatan_bendahara = catatan_bendahara or 'Bukti transfer valid dan telah di-ACC Admin.'
         pengajuan.diverifikasi_oleh = request.user if request.user.is_authenticated else None
         pengajuan.diverifikasi_pada = timezone.now()
         pengajuan.save()
@@ -1201,7 +1256,7 @@ def verifikasi_iuran_action_view(request, pk):
             kategori=kat_iuran,
             nominal=pengajuan.nominal,
             judul=f"Kas Anggota: {pengajuan.anggota.nama} ({pengajuan.periode.nama_periode})",
-            keterangan=f"Verifikasi transfer ({pengajuan.metode_pembayaran}) oleh Bendahara. Catatan: {pengajuan.catatan}",
+            keterangan=f"Verifikasi transfer ({pengajuan.metode_pembayaran}) di-ACC oleh Admin. Catatan: {pengajuan.catatan or '-'}",
             tanggal=timezone.now().date(),
             divisi_terkait=pengajuan.anggota.divisi,
             bukti_transaksi=pengajuan.bukti_transfer,
@@ -1212,19 +1267,21 @@ def verifikasi_iuran_action_view(request, pk):
 
         messages.success(
             request,
-            f"Pembayaran kas {pengajuan.anggota.nama} ({pengajuan.periode.nama_periode}) BERHASIL DISETUJUI & diverifikasi Lunas!"
+            f"Bukti transfer {pengajuan.anggota.nama} ({pengajuan.periode.nama_periode}) BERHASIL DI-ACC! "
+            f"Status di Matriks kini HIJAU (Lunas)."
         )
 
     elif action == 'tolak':
         pengajuan.status = 'ditolak'
-        pengajuan.catatan_bendahara = catatan_bendahara or 'Bukti pembayaran tidak terbaca atau nominal tidak sesuai.'
+        pengajuan.catatan_bendahara = catatan_bendahara or 'Bukti transfer tidak terbaca atau nominal tidak sesuai.'
         pengajuan.diverifikasi_oleh = request.user if request.user.is_authenticated else None
         pengajuan.diverifikasi_pada = timezone.now()
         pengajuan.save()
 
         messages.warning(
             request,
-            f"Pengajuan pembayaran dari {pengajuan.anggota.nama} ({pengajuan.periode.nama_periode}) telah DITOLAK."
+            f"Pengajuan bukti transfer dari {pengajuan.anggota.nama} ({pengajuan.periode.nama_periode}) telah DITOLAK."
         )
 
-    return redirect('verifikasi_iuran_list')
+    referer = request.META.get('HTTP_REFERER')
+    return redirect(referer or 'verifikasi_iuran_list')

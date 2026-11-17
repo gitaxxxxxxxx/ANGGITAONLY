@@ -341,7 +341,10 @@
                     <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
                         <i data-lucide="plus-circle" class="w-4 h-4"></i>
                     </div>
-                    <h3 class="font-bold text-slate-800">Catat Transaksi Cepat</h3>
+                    <div>
+                        <h3 class="font-bold text-slate-800">Catat Transaksi Operasional</h3>
+                        <p class="text-[11px] text-slate-500">Pemasukan (Sponsor/Danus/Subsidi) & Pengeluaran Kegiatan</p>
+                    </div>
                 </div>
                 <button onclick="closeModal('quickTrxModal')" class="text-slate-400 hover:text-slate-700">
                     <i data-lucide="x" class="w-5 h-5"></i>
@@ -368,7 +371,7 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Judul Transaksi <span class="text-rose-500">*</span></label>
-                    <input type="text" name="judul" required placeholder="Contoh: Pembelian ATK LPJ Rapat Kerja" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                    <input type="text" name="judul" required placeholder="Contoh: Sponsorship Bank Mandiri / Konsumsi Rapat" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -390,10 +393,11 @@
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Kategori Transaksi <span class="text-rose-500">*</span></label>
                         <select name="kategori" id="quickKategoriSelect" required class="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
                             <option value="">-- Pilih Kategori --</option>
-                            {% for kat in kategori_all %}
+                            {% for kat in kategori_operasional %}
                             <option value="{{ kat.id }}" data-jenis="{{ kat.jenis }}">{{ kat.nama }} ({{ kat.get_jenis_display }})</option>
                             {% endfor %}
                         </select>
+                        <p class="text-[10px] text-slate-400 mt-1">*Iuran kas anggota tercatat otomatis saat bukti transfer di-ACC.</p>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Divisi Terkait (Opsional)</label>

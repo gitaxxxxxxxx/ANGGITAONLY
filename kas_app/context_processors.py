@@ -1,4 +1,4 @@
-from .models import ProfilOrganisasi, PengajuanIuran, Anggota
+from .models import ProfilOrganisasi, PengajuanIuran, Anggota, KategoriTransaksi, Divisi
 
 def profil_organisasi_processor(request):
     profil = ProfilOrganisasi.objects.first()
@@ -33,6 +33,8 @@ def profil_organisasi_processor(request):
             is_anggota = False
 
     pending_pengajuan_count = PengajuanIuran.objects.filter(status='menunggu').count() if is_bendahara else 0
+    kategori_operasional = KategoriTransaksi.objects.filter(is_iuran_kas=False)
+    divisi_all = Divisi.objects.all()
 
     return {
         'profil_organisasi': profil,
@@ -42,4 +44,6 @@ def profil_organisasi_processor(request):
         'is_anggota': is_anggota,
         'user_anggota': user_anggota,
         'pending_pengajuan_count': pending_pengajuan_count,
+        'kategori_operasional': kategori_operasional,
+        'divisi_all': divisi_all,
     }

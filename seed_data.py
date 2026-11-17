@@ -290,6 +290,7 @@ def run_seed():
             periode=p_okt,
             nominal=Decimal('10000'),
             metode_pembayaran='Transfer Bank',
+            bukti_transfer='bukti_transfer_anggota/sample_dimas_bca.png',
             catatan='Sudah transfer via Bank BCA a.n. Dimas Arya. Mohon verifikasinya min, terima kasih!',
             status='menunggu'
         )
@@ -302,10 +303,11 @@ def run_seed():
             periode=p_sep,
             nominal=Decimal('10000'),
             metode_pembayaran='QRIS',
+            bukti_transfer='bukti_transfer_anggota/sample_anisa_qris.png',
             catatan='Pembayaran kas bulan September via scan QRIS resmi BEM.',
             status='menunggu'
         )
-    print("✅ 2 Pengajuan iuran kas anggota (Menunggu Verifikasi) siap diuji.")
+    print("✅ 2 Pengajuan iuran kas anggota (Lengkap dengan Bukti Transfer Resi) siap diuji.")
 
     # Hitung Saldo Akhir
     total_in = Transaksi.objects.filter(jenis='masuk').aggregate(django.db.models.Sum('nominal'))['nominal__sum'] or Decimal('0')

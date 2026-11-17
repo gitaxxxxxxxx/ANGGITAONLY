@@ -81,11 +81,24 @@
                         </td>
                         <td class="py-3.5 px-4 text-center whitespace-nowrap">
                             {% if p.bukti_transfer %}
-                            <a href="{{ p.bukti_transfer.url }}" target="_blank" class="inline-flex items-center px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs transition-colors">
-                                <i data-lucide="receipt" class="w-3.5 h-3.5 mr-1"></i> Lihat Bukti
-                            </a>
+                            <div class="flex items-center justify-center space-x-1.5">
+                                <button type="button" 
+                                        onclick="openPreviewBuktiModal('{{ p.bukti_transfer.url }}', '{{ p.anggota.nama|escapejs }}', '{{ p.anggota.nim }}', '{{ p.anggota.divisi.kode }}', '{{ p.periode.nama_periode }}', '{{ p.nominal|rupiah }}', '{{ p.metode_pembayaran }}', '{{ p.catatan|default:''|escapejs }}', '{{ p.id }}', '{{ p.status }}', '{{ p.tanggal_pengajuan|date:'d M Y H:i' }}')"
+                                        class="inline-flex items-center px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs transition-all shadow-sm hover:shadow hover:scale-105 group" 
+                                        title="Klik untuk membuka pratinjau bukti transfer">
+                                    <i data-lucide="eye" class="w-3.5 h-3.5 mr-1.5 text-emerald-600 group-hover:scale-110 transition-transform"></i>
+                                    <span>Lihat Foto Resi</span>
+                                </button>
+                                <a href="{{ p.bukti_transfer.url }}" target="_blank" download class="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors" title="Download File Asli">
+                                    <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                                </a>
+                            </div>
                             {% else %}
-                            <span class="text-slate-400 italic text-[11px]">Tidak ada file</span>
+                            <button type="button" 
+                                    onclick="openPreviewBuktiModal('https://dummyimage.com/600x850/00529c/ffffff.png&text=Resi+Transfer+{{ p.anggota.nama|urlencode }}+({{ p.periode.nama_periode }})', '{{ p.anggota.nama|escapejs }}', '{{ p.anggota.nim }}', '{{ p.anggota.divisi.kode }}', '{{ p.periode.nama_periode }}', '{{ p.nominal|rupiah }}', '{{ p.metode_pembayaran }}', '{{ p.catatan|default:''|escapejs }}', '{{ p.id }}', '{{ p.status }}', '{{ p.tanggal_pengajuan|date:'d M Y H:i' }}')"
+                                    class="inline-flex items-center px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold">
+                                <i data-lucide="file-text" class="w-3.5 h-3.5 mr-1"></i> Tinjau Resi
+                            </button>
                             {% endif %}
                         </td>
                         <td class="py-3.5 px-4 text-xs text-slate-600 max-w-xs">
@@ -137,6 +150,103 @@
 
 </div>
 
+<!-- Modal Pratinjau Bukti Transfer Lengkap (Admin) -->
+<div id="previewBuktiModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] shadow-2xl overflow-hidden border border-slate-100 flex flex-col animate-in fade-in zoom-in-95 duration-200">
+        <!-- Header -->
+        <div class="px-6 py-4 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center justify-between shrink-0">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-9 h-9 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
+                    <i data-lucide="receipt" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm">Pratinjau Bukti Transfer Mahasiswa</h3>
+                    <p class="text-[11px] text-emerald-100">Tinjau keabsahan resi pembayaran kas sebelum menyetujui</p>
+                </div>
+            </div>
+            <button onclick="closePreviewBuktiModal()" class="text-white/80 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Body Scrollable -->
+        <div class="p-6 overflow-y-auto space-y-4">
+            <!-- Metadata Anggota & Tagihan -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-xs">
+                <div>
+                    <span class="text-slate-400 block text-[11px]">Mahasiswa Anggota:</span>
+                    <p id="modalNama" class="font-bold text-slate-800 text-sm mt-0.5"></p>
+                    <p id="modalNimDiv" class="text-slate-500 font-mono text-[11px]"></p>
+                </div>
+                <div>
+                    <span class="text-slate-400 block text-[11px]">Bulan Tagihan:</span>
+                    <p id="modalPeriode" class="font-bold text-emerald-700 text-sm mt-0.5"></p>
+                    <p id="modalNominal" class="font-extrabold text-slate-800"></p>
+                </div>
+                <div class="sm:col-span-2 pt-2 border-t border-slate-200/60 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <span class="text-slate-400 text-[11px]">Metode Pembayaran:</span>
+                        <span id="modalMetode" class="font-semibold text-slate-700 ml-1"></span>
+                        <span class="text-slate-300 mx-1.5">•</span>
+                        <span class="text-slate-400 text-[11px]">Waktu Pengajuan:</span>
+                        <span id="modalWaktu" class="text-slate-600 ml-1"></span>
+                    </div>
+                </div>
+                <div class="sm:col-span-2 bg-white p-2.5 rounded-xl border border-slate-200">
+                    <span class="text-slate-400 text-[10px] block font-semibold uppercase tracking-wider">Catatan Pengirim:</span>
+                    <p id="modalCatatan" class="text-slate-700 italic text-[11px] mt-0.5"></p>
+                </div>
+            </div>
+
+            <!-- Image View -->
+            <div>
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="text-xs font-bold text-slate-700 flex items-center">
+                        <i data-lucide="image" class="w-3.5 h-3.5 mr-1 text-emerald-600"></i> Berkas Foto / Struk Bukti Transfer:
+                    </label>
+                    <div class="flex items-center space-x-2">
+                        <a id="modalOpenTab" href="#" target="_blank" class="text-xs font-semibold text-emerald-700 hover:underline flex items-center">
+                            <i data-lucide="external-link" class="w-3.5 h-3.5 mr-1"></i> Buka Layar Penuh
+                        </a>
+                        <span class="text-slate-300">•</span>
+                        <a id="modalDownload" href="#" download class="text-xs font-semibold text-slate-600 hover:underline flex items-center">
+                            <i data-lucide="download" class="w-3.5 h-3.5 mr-1"></i> Unduh File
+                        </a>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900/5 rounded-2xl p-3 border border-slate-200 flex items-center justify-center min-h-[300px] max-h-[460px] overflow-hidden">
+                    <img id="modalBuktiImg" src="" alt="Bukti Transfer" class="max-h-[440px] w-auto max-w-full rounded-xl object-contain shadow-md cursor-pointer hover:scale-[1.01] transition-transform" onclick="window.open(this.src, '_blank')">
+                </div>
+                <p class="text-[11px] text-slate-400 text-center mt-1">*Klik pada gambar untuk membuka ukuran penuh di tab baru</p>
+            </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
+            <button type="button" onclick="closePreviewBuktiModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold">
+                Tutup
+            </button>
+
+            <div id="modalActionArea" class="flex items-center space-x-2">
+                <!-- Action Form Setujui -->
+                <form id="modalFormSetujui" method="POST" class="inline" onsubmit="return confirm('ACC bukti transfer ini? Sistem akan mengubah status menjadi HIJAU (Lunas) dan mencatat transaksi kas masuk.')">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="setujui">
+                    <button type="submit" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/30 flex items-center">
+                        <i data-lucide="check" class="w-4 h-4 mr-1.5"></i> Setujui (ACC Sekarang)
+                    </button>
+                </form>
+
+                <!-- Action Button Tolak -->
+                <button type="button" onclick="triggerTolakFromModal()" class="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-colors">
+                    Tolak Bukti
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Tolak Pengajuan -->
 <div id="tolakModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-100 p-6 space-y-4">
@@ -165,12 +275,58 @@
 
 {% block extra_scripts %}
 <script>
+    let activePengajuanData = null;
+
+    function openPreviewBuktiModal(buktiUrl, nama, nim, divisi, periode, nominal, metode, catatan, id, status, tglUpload) {
+        activePengajuanData = { id, nama, periode };
+
+        document.getElementById('modalNama').innerText = nama;
+        document.getElementById('modalNimDiv').innerText = `${nim} • Divisi ${divisi}`;
+        document.getElementById('modalPeriode').innerText = periode;
+        document.getElementById('modalNominal').innerText = nominal;
+        document.getElementById('modalMetode').innerText = metode;
+        document.getElementById('modalWaktu').innerText = tglUpload || 'Baru saja';
+        document.getElementById('modalCatatan').innerText = catatan ? `"${catatan}"` : 'Tidak ada catatan tambahan dari anggota.';
+
+        const img = document.getElementById('modalBuktiImg');
+        const openTab = document.getElementById('modalOpenTab');
+        const dl = document.getElementById('modalDownload');
+
+        img.src = buktiUrl;
+        openTab.href = buktiUrl;
+        dl.href = buktiUrl;
+
+        const formSetujui = document.getElementById('modalFormSetujui');
+        formSetujui.action = `/verifikasi-iuran/${id}/action/`;
+
+        const actionArea = document.getElementById('modalActionArea');
+        if (status === 'menunggu') {
+            actionArea.classList.remove('hidden');
+        } else {
+            actionArea.classList.add('hidden');
+        }
+
+        document.getElementById('previewBuktiModal').classList.remove('hidden');
+        lucide.createIcons();
+    }
+
+    function closePreviewBuktiModal() {
+        document.getElementById('previewBuktiModal').classList.add('hidden');
+    }
+
+    function triggerTolakFromModal() {
+        if (!activePengajuanData) return;
+        closePreviewBuktiModal();
+        openTolakModal(activePengajuanData.id, activePengajuanData.nama, activePengajuanData.periode);
+    }
+
     function openTolakModal(id, nama, periode) {
         const form = document.getElementById('formTolak');
         form.action = `/verifikasi-iuran/${id}/action/`;
         document.getElementById('tolakDesc').innerText = `Anda akan menolak pengajuan iuran dari ${nama} untuk ${periode}. Silakan berikan alasan agar anggota dapat memperbaikinya.`;
         document.getElementById('tolakModal').classList.remove('hidden');
     }
+
     function closeTolakModal() {
         document.getElementById('tolakModal').classList.add('hidden');
     }

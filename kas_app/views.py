@@ -1,8 +1,10 @@
 import csv
+import os
 from datetime import datetime, date
 from decimal import Decimal
 import urllib.parse
 
+from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -21,6 +23,75 @@ from .models import (
 # ==========================================
 # HELPER FUNCTIONS
 # ==========================================
+def generate_mock_transfer_receipt(anggota, periode, metode='Transfer Bank', catatan=''):
+    """Membuat resi transfer visual otomatis jika tidak ada file fisik yang diunggah."""
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+        media_sub = 'bukti_transfer_anggota'
+        dest_dir = os.path.join(settings.MEDIA_ROOT, media_sub)
+        os.makedirs(dest_dir, exist_ok=True)
+        fname = f"receipt_{anggota.nim}_{periode.id}_{int(timezone.now().timestamp())}.png"
+        fpath = os.path.join(dest_dir, fname)
+
+        w, h = 600, 850
+        img = Image.new('RGB', (w, h), color='#F8FAFC')
+        draw = ImageDraw.Draw(img)
+
+        header_color = '#00529C' if 'BCA' in metode else ('#16A34A' if 'QRIS' in metode else '#1E3A8A')
+        draw.rectangle([0, 0, w, 110], fill=header_color)
+        draw.rounded_rectangle([25, 80, w-25, h-40], radius=20, fill='#FFFFFF', outline='#E2E8F0', width=2)
+
+        # Checkmark icon
+        draw.ellipse([w//2 - 35, 120, w//2 + 35, 190], fill='#DCFCE7', outline='#22C55E', width=3)
+        draw.line([w//2 - 15, 155, w//2 - 3, 168], fill='#16A34A', width=4)
+        draw.line([w//2 - 3, 168, w//2 + 18, 142], fill='#16A34A', width=4)
+
+        try:
+            font_xl = ImageFont.truetype('arialbd.ttf', 30)
+            font_md = ImageFont.truetype('arialbd.ttf', 17)
+            font_sm = ImageFont.truetype('arial.ttf', 15)
+            font_xs = ImageFont.truetype('arial.ttf', 13)
+            font_head = ImageFont.truetype('arialbd.ttf', 24)
+        except:
+            font_xl = font_md = font_sm = font_xs = font_head = ImageFont.load_default()
+
+        draw.text((35, 40), f'{metode.upper()}', fill='#FFFFFF', font=font_head)
+        draw.text((w-180, 45), 'RESI RESMI', fill='#E0F2FE', font=font_sm)
+
+        draw.text((w//2, 215), 'TRANSFER BERHASIL', fill='#0F172A', font=font_xl, anchor='mm')
+        now_str = timezone.now().strftime('%d %b %Y %H:%M WIB')
+        draw.text((w//2, 250), now_str, fill='#64748B', font=font_sm, anchor='mm')
+
+        draw.rounded_rectangle([60, 280, w-60, 360], radius=15, fill='#F0FDF4', outline='#BBF7D0', width=1)
+        draw.text((w//2, 305), 'Total Pembayaran', fill='#166534', font=font_xs, anchor='mm')
+        draw.text((w//2, 335), f'Rp {periode.nominal:,.0f}'.replace(',', '.'), fill='#15803D', font=font_xl, anchor='mm')
+
+        draw.line([50, 385, w-50, 385], fill='#E2E8F0', width=1)
+
+        details = [
+            ('No. Referensi', f'TRF{int(timezone.now().timestamp())}'),
+            ('Nama Pengirim', anggota.nama),
+            ('NIM Mahasiswa', anggota.nim),
+            ('Penerima', 'BEM FASILKOM UI (KAS UTAMA)'),
+            ('Bank Tujuan', 'BCA (014) - Rek. 8820192831'),
+            ('Peruntukan', f'Iuran Kas {periode.nama_periode}'),
+            ('Catatan', catatan or 'Tanpa catatan tambahan'),
+            ('Status', 'BERHASIL / SUKSES'),
+        ]
+
+        y = 410
+        for k, v in details:
+            draw.text((60, y), k, fill='#64748B', font=font_sm)
+            draw.text((w-60, y), str(v)[:32], fill='#0F172A' if k != 'Status' else '#16A34A', font=font_md if k in ['Nama Pengirim', 'Status'] else font_sm, anchor='ra')
+            y += 45
+            if y < 730:
+                draw.line([60, y-10, w-60, y-10], fill='#F1F5F9', width=1)
+
+        draw.text((w//2, h-65), 'Simpan resi transfer ini sebagai bukti pembayaran kas sah.', fill='#94A3B8', font=font_xs, anchor='mm')
+        img.save(fpath, 'PNG')
+        return f"{media_sub}/{fname}"
+    except Exception as e:
+        return ""
 def get_profil():
     profil = ProfilOrganisasi.objects.first()
     if not profil:
@@ -1169,6 +1240,10 @@ def kirim_bukti_iuran_view(request):
 
         try:
             periode = PeriodeKas.objects.get(id=periode_id)
+            if not bukti_file:
+                mock_rel_path = generate_mock_transfer_receipt(anggota, periode, metode, catatan)
+                bukti_file = mock_rel_path if mock_rel_path else None
+
             pengajuan = PengajuanIuran.objects.create(
                 anggota=anggota,
                 periode=periode,

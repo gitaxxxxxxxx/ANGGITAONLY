@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}Konfirmasi Hapus{% endblock %}
+{% block header_title %}Konfirmasi Penghapusan{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto my-12">
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-lg p-6 text-center space-y-4">
+        <div class="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+            <i data-lucide="alert-triangle" class="w-7 h-7"></i>
+        </div>
+        <div>
+            <h3 class="text-lg font-bold text-slate-800">{{ title }}</h3>
+            <p class="text-xs text-slate-500 mt-1">
+                Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.
+            </p>
+        </div>
+        <form method="POST" class="pt-2 flex items-center justify-center space-x-3">
+            {% csrf_token %}
+            <a href="{% url cancel_url %}" class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold">
+                Batal
+            </a>
+            <button type="submit" class="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-md shadow-rose-600/30">
+                Ya, Hapus Data
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

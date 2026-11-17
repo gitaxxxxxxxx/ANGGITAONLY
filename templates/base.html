@@ -1,0 +1,403 @@
+{% load static %}
+{% load kas_tags %}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dashboard{% endblock %} - {{ app_title }}</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            200: '#a7f3d0',
+                            300: '#6ee7b7',
+                            400: '#34d399',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46',
+                            900: '#064e3b',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        @media print {
+            .no-print { display: none !important; }
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Top Notice Bar (Academic Project Info) -->
+    <div class="bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 text-white text-xs py-1.5 px-4 no-print border-b border-emerald-900/40">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center space-x-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
+                    Sistem Tugas Akhir / Metopen
+                </span>
+                <span class="font-medium truncate max-w-xl hidden md:inline">
+                    {{ app_subtitle }}
+                </span>
+            </div>
+            <div class="flex items-center space-x-4 text-emerald-100">
+                <span class="flex items-center"><i data-lucide="building-2" class="w-3.5 h-3.5 mr-1"></i> {{ profil_organisasi.nama_organisasi }}</span>
+                <span class="flex items-center"><i data-lucide="calendar" class="w-3.5 h-3.5 mr-1"></i> Periode {{ profil_organisasi.periode_kepengurusan }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Navigation & Sidebar Wrapper -->
+    <div class="flex flex-1 min-h-0">
+        <!-- Sidebar Navigation (Desktop) -->
+        <aside class="w-64 bg-white border-r border-slate-200 flex flex-col justify-between hidden md:flex shrink-0 no-print">
+            <div>
+                <!-- Brand / Logo -->
+                <div class="h-20 flex items-center px-6 border-b border-slate-100 bg-white">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 mr-3">
+                        <i data-lucide="wallet" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-base text-slate-800 tracking-tight leading-none">{{ app_title }}</h1>
+                        <p class="text-xs text-slate-500 mt-1 font-medium">{{ profil_organisasi.singkatan }}</p>
+                    </div>
+                </div>
+
+                <!-- Nav Menu -->
+                <nav class="p-4 space-y-1.5">
+                    <p class="px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Menu Utama</p>
+
+                    <a href="{% url 'dashboard' %}" class="flex items-center px-3 py-2.5 rounded-xl font-medium text-sm transition-colors {% if request.resolver_match.url_name == 'dashboard' %}bg-emerald-50 text-emerald-700 font-semibold{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4 mr-3 {% if request.resolver_match.url_name == 'dashboard' %}text-emerald-600{% else %}text-slate-400{% endif %}"></i>
+                        Dashboard
+                    </a>
+
+                    <a href="{% url 'transaksi_list' %}" class="flex items-center px-3 py-2.5 rounded-xl font-medium text-sm transition-colors {% if 'transaksi' in request.resolver_match.url_name %}bg-emerald-50 text-emerald-700 font-semibold{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">
+                        <i data-lucide="arrow-left-right" class="w-4 h-4 mr-3 {% if 'transaksi' in request.resolver_match.url_name %}text-emerald-600{% else %}text-slate-400{% endif %}"></i>
+                        Transaksi Kas
+                    </a>
+
+                    <a href="{% url 'iuran_matrix' %}" class="flex items-center px-3 py-2.5 rounded-xl font-medium text-sm transition-colors {% if 'iuran' in request.resolver_match.url_name %}bg-emerald-50 text-emerald-700 font-semibold{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">
+                        <i data-lucide="grid-3x3" class="w-4 h-4 mr-3 {% if 'iuran' in request.resolver_match.url_name %}text-emerald-600{% else %}text-slate-400{% endif %}"></i>
+                        <span>Matriks Iuran Kas</span>
+                        <span class="ml-auto text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">Rutin</span>
+                    </a>
+
+                    <p class="px-3 pt-4 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Laporan & Rekap</p>
+
+                    <a href="{% url 'rekapitulasi' %}" class="flex items-center px-3 py-2.5 rounded-xl font-medium text-sm transition-colors {% if request.resolver_match.url_name == 'rekapitulasi' %}bg-emerald-50 text-emerald-700 font-semibold{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">
+                        <i data-lucide="calculator" class="w-4 h-4 mr-3 {% if request.resolver_match.url_name == 'rekapitulasi' %}text-emerald-600{% else %}text-slate-400{% endif %}"></i>
+                        <span>Rekapitulasi Otomatis</span>
+                        <span class="ml-auto flex h-2 w-2 relative">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                    </a>
+
+                    <a href="{% url 'cetak_lpj' %}" target="_blank" class="flex items-center px-3 py-2.5 rounded-xl font-medium text-sm transition-colors text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+                        <i data-lucide="printer" class="w-4 h-4 mr-3 text-slate-400"></i>
+                        Cetak Laporan LPJ
+                    </a>
+
+                    <p class="px-3 pt-4 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Master Data</p>
+
+                    <a href="{% url 'anggota_list' %}" class="flex items-center px-3 py-2.5 rounded-xl font-medium text-sm transition-colors {% if 'anggota' in request.resolver_match.url_name %}bg-emerald-50 text-emerald-700 font-semibold{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">
+                        <i data-lucide="users" class="w-4 h-4 mr-3 {% if 'anggota' in request.resolver_match.url_name %}text-emerald-600{% else %}text-slate-400{% endif %}"></i>
+                        Data Anggota
+                    </a>
+
+                    <a href="{% url 'pengaturan' %}" class="flex items-center px-3 py-2.5 rounded-xl font-medium text-sm transition-colors {% if 'pengaturan' in request.resolver_match.url_name %}bg-emerald-50 text-emerald-700 font-semibold{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">
+                        <i data-lucide="settings" class="w-4 h-4 mr-3 {% if 'pengaturan' in request.resolver_match.url_name %}text-emerald-600{% else %}text-slate-400{% endif %}"></i>
+                        Pengaturan Ormawa
+                    </a>
+                </nav>
+            </div>
+
+            <!-- User Info / Quick Logout -->
+            <div class="p-4 border-t border-slate-100 bg-slate-50/50">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-full bg-emerald-100 border border-emerald-300 flex items-center justify-center font-bold text-emerald-800 text-xs">
+                            {% if request.user.is_authenticated %}{{ request.user.username|make_list|first|upper }}{% else %}B{% endif %}
+                        </div>
+                        <div class="text-xs">
+                            <p class="font-bold text-slate-800">
+                                {% if request.user.is_authenticated %}{{ request.user.first_name|default:request.user.username }}{% else %}Bendahara Umum{% endif %}
+                            </p>
+                            <p class="text-slate-500 text-[10px]">Administrator Kas</p>
+                        </div>
+                    </div>
+                    {% if request.user.is_authenticated %}
+                    <a href="{% url 'logout' %}" title="Logout" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </a>
+                    {% else %}
+                    <a href="{% url 'login' %}" title="Login" class="p-1.5 text-emerald-600 hover:text-emerald-800 rounded-lg hover:bg-emerald-50 transition-colors">
+                        <i data-lucide="log-in" class="w-4 h-4"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col min-w-0">
+            <!-- Header Bar -->
+            <header class="h-16 bg-white border-b border-slate-200 px-4 md:px-8 flex items-center justify-between no-print sticky top-0 z-20">
+                <!-- Mobile Menu Button -->
+                <div class="flex items-center space-x-3">
+                    <button id="mobileMenuBtn" class="p-2 text-slate-600 md:hidden hover:bg-slate-100 rounded-lg">
+                        <i data-lucide="menu" class="w-5 h-5"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800 leading-tight">{% block header_title %}Dashboard Keuangan{% endblock %}</h2>
+                        <p class="text-xs text-slate-500 hidden sm:block">{% block header_subtitle %}Pantau dan kelola arus kas organisasi mahasiswa secara real-time{% endblock %}</p>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center space-x-2 md:space-x-3">
+                    <!-- Quick Add Transaction Modal Trigger -->
+                    <button onclick="openModal('quickTrxModal')" class="inline-flex items-center px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs md:text-sm font-semibold transition-all shadow-sm shadow-emerald-600/30">
+                        <i data-lucide="plus-circle" class="w-4 h-4 mr-1.5"></i>
+                        <span>Catat Transaksi</span>
+                    </button>
+                    <a href="{% url 'cetak_lpj' %}" target="_blank" class="inline-flex items-center px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs md:text-sm font-medium transition-colors">
+                        <i data-lucide="printer" class="w-4 h-4 mr-1.5 text-slate-500"></i>
+                        <span class="hidden sm:inline">Cetak LPJ</span>
+                    </a>
+                </div>
+            </header>
+
+            <!-- Mobile Navigation Drawer -->
+            <div id="mobileMenu" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden md:hidden">
+                <div class="w-72 bg-white h-full p-4 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white">
+                                    <i data-lucide="wallet" class="w-4 h-4"></i>
+                                </div>
+                                <span class="font-bold text-slate-800">{{ app_title }}</span>
+                            </div>
+                            <button id="closeMobileMenuBtn" class="p-1.5 text-slate-400 hover:text-slate-700">
+                                <i data-lucide="x" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                        <nav class="mt-4 space-y-1">
+                            <a href="{% url 'dashboard' %}" class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">
+                                <i data-lucide="layout-dashboard" class="w-4 h-4 mr-3 text-slate-500"></i> Dashboard
+                            </a>
+                            <a href="{% url 'transaksi_list' %}" class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">
+                                <i data-lucide="arrow-left-right" class="w-4 h-4 mr-3 text-slate-500"></i> Transaksi Kas
+                            </a>
+                            <a href="{% url 'iuran_matrix' %}" class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">
+                                <i data-lucide="grid-3x3" class="w-4 h-4 mr-3 text-slate-500"></i> Matriks Iuran Kas
+                            </a>
+                            <a href="{% url 'rekapitulasi' %}" class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">
+                                <i data-lucide="calculator" class="w-4 h-4 mr-3 text-slate-500"></i> Rekapitulasi Otomatis
+                            </a>
+                            <a href="{% url 'anggota_list' %}" class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">
+                                <i data-lucide="users" class="w-4 h-4 mr-3 text-slate-500"></i> Data Anggota
+                            </a>
+                            <a href="{% url 'pengaturan' %}" class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">
+                                <i data-lucide="settings" class="w-4 h-4 mr-3 text-slate-500"></i> Pengaturan Ormawa
+                            </a>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page Alerts / Toast Messages -->
+            {% if messages %}
+            <div class="px-4 md:px-8 pt-4 no-print">
+                {% for message in messages %}
+                <div class="p-4 mb-3 rounded-xl flex items-center justify-between text-sm {% if message.tags == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200{% elif message.tags == 'error' %}bg-rose-50 text-rose-800 border border-rose-200{% elif message.tags == 'info' %}bg-sky-50 text-sky-800 border border-sky-200{% else %}bg-amber-50 text-amber-800 border border-amber-200{% endif %}">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}alert-circle{% else %}info{% endif %}" class="w-5 h-5 shrink-0"></i>
+                        <span>{{ message }}</span>
+                    </div>
+                    <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-700">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Dynamic Content -->
+            <main class="flex-1 p-4 md:p-8">
+                {% block content %}{% endblock %}
+            </main>
+
+            <!-- Footer -->
+            <footer class="bg-white border-t border-slate-200 py-4 px-6 text-center text-xs text-slate-400 no-print">
+                <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+                    <p>&copy; 2026 {{ profil_organisasi.nama_organisasi }} - {{ profil_organisasi.nama_institusi }}</p>
+                    <p class="font-medium text-slate-500">Sistem Informasi Manajemen Kas Berbasis Web dengan Rekapitulasi Otomatis</p>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Quick Add Transaction Modal -->
+    <div id="quickTrxModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
+            <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-800">Catat Transaksi Cepat</h3>
+                </div>
+                <button onclick="closeModal('quickTrxModal')" class="text-slate-400 hover:text-slate-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form action="{% url 'transaksi_create' %}" method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
+                {% csrf_token %}
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="cursor-pointer">
+                        <input type="radio" name="jenis" value="masuk" checked class="peer sr-only" onchange="filterQuickKategori()">
+                        <div class="p-3 text-center rounded-xl border-2 border-slate-200 peer-checked:border-emerald-500 peer-checked:bg-emerald-50/50 peer-checked:text-emerald-700 font-semibold text-sm transition-all">
+                            <i data-lucide="arrow-down-left" class="w-4 h-4 mx-auto mb-1 text-emerald-600"></i>
+                            Pemasukan (Kas Masuk)
+                        </div>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="jenis" value="keluar" class="peer sr-only" onchange="filterQuickKategori()">
+                        <div class="p-3 text-center rounded-xl border-2 border-slate-200 peer-checked:border-rose-500 peer-checked:bg-rose-50/50 peer-checked:text-rose-700 font-semibold text-sm transition-all">
+                            <i data-lucide="arrow-up-right" class="w-4 h-4 mx-auto mb-1 text-rose-600"></i>
+                            Pengeluaran (Kas Keluar)
+                        </div>
+                    </label>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Judul Transaksi <span class="text-rose-500">*</span></label>
+                    <input type="text" name="judul" required placeholder="Contoh: Pembelian ATK LPJ Rapat Kerja" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Nominal (Rp) <span class="text-rose-500">*</span></label>
+                        <div class="relative">
+                            <span class="absolute left-3.5 top-2.5 text-xs font-bold text-slate-400">Rp</span>
+                            <input type="number" name="nominal" min="1000" step="500" required placeholder="50.000" class="w-full pl-10 pr-3.5 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-semibold">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal Transaksi</label>
+                        <input type="date" name="tanggal" value="{% now 'Y-m-d' %}" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Kategori Transaksi <span class="text-rose-500">*</span></label>
+                        <select name="kategori" id="quickKategoriSelect" required class="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                            <option value="">-- Pilih Kategori --</option>
+                            {% for kat in kategori_all %}
+                            <option value="{{ kat.id }}" data-jenis="{{ kat.jenis }}">{{ kat.nama }} ({{ kat.get_jenis_display }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Divisi Terkait (Opsional)</label>
+                        <select name="divisi_terkait" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                            <option value="">-- Tidak Terikat --</option>
+                            {% for div in divisi_all %}
+                            <option value="{{ div.id }}">{{ div.nama }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Keterangan Tambahan</label>
+                    <textarea name="keterangan" rows="2" placeholder="Catatan bukti nota atau deskripsi kegiatan..." class="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Upload Bukti Transaksi / Nota</label>
+                    <input type="file" name="bukti_transaksi" accept="image/*,.pdf" class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+                </div>
+
+                <div class="pt-2 flex items-center justify-end space-x-2">
+                    <button type="button" onclick="closeModal('quickTrxModal')" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium">Batal</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-md shadow-emerald-600/30">Simpan Transaksi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script Init -->
+    <script>
+        lucide.createIcons();
+
+        // Mobile drawer handlers
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const closeMobileMenuBtn = document.getElementById('closeMobileMenuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+
+        if (mobileMenuBtn && mobileMenu) {
+            mobileMenuBtn.addEventListener('click', () => mobileMenu.classList.remove('hidden'));
+        }
+        if (closeMobileMenuBtn && mobileMenu) {
+            closeMobileMenuBtn.addEventListener('click', () => mobileMenu.classList.add('hidden'));
+        }
+
+        // Modal helper functions
+        function openModal(id) {
+            const m = document.getElementById(id);
+            if (m) m.classList.remove('hidden');
+        }
+        function closeModal(id) {
+            const m = document.getElementById(id);
+            if (m) m.classList.add('hidden');
+        }
+
+        // Filter modal kategori dropdown based on selected jenis
+        function filterQuickKategori() {
+            const jenisRadio = document.querySelector('input[name="jenis"]:checked');
+            const select = document.getElementById('quickKategoriSelect');
+            if (!jenisRadio || !select) return;
+            const jenisVal = jenisRadio.value;
+            for (let i = 0; i < select.options.length; i++) {
+                const opt = select.options[i];
+                if (!opt.value) continue;
+                const optJenis = opt.getAttribute('data-jenis');
+                if (optJenis === jenisVal) {
+                    opt.style.display = '';
+                } else {
+                    opt.style.display = 'none';
+                }
+            }
+        }
+        document.addEventListener('DOMContentLoaded', filterQuickKategori);
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

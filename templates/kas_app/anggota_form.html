@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ action }} Data Anggota{% endblock %}
+{% block header_title %}{{ action }} Data Anggota{% endblock %}
+{% block header_subtitle %}Kelola identitas anggota dan departemen organisasi mahasiswa{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                    <i data-lucide="{% if action == 'Tambah' %}user-plus{% else %}user-check{% endif %}" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-base text-slate-800">{{ action }} Anggota Organisasi</h3>
+                    <p class="text-xs text-slate-500">Data ini akan terhubung langsung ke sistem matriks kas rutin</p>
+                </div>
+            </div>
+            <a href="{% url 'anggota_list' %}" class="text-xs text-slate-500 hover:text-slate-800 font-medium flex items-center">
+                <i data-lucide="arrow-left" class="w-4 h-4 mr-1"></i> Kembali
+            </a>
+        </div>
+
+        <form method="POST" class="p-6 space-y-4">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor Induk Mahasiswa (NIM) <span class="text-rose-500">*</span></label>
+                    <input type="text" name="nim" value="{{ anggota.nim|default:'' }}" required placeholder="Contoh: 2308101001" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-mono">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap <span class="text-rose-500">*</span></label>
+                    <input type="text" name="nama" value="{{ anggota.nama|default:'' }}" required placeholder="Contoh: Muhammad Fikri Pratama" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Divisi / Departemen <span class="text-rose-500">*</span></label>
+                    <select name="divisi" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                        <option value="">-- Pilih Divisi --</option>
+                        {% for d in divisi_list %}
+                        <option value="{{ d.id }}" {% if anggota and anggota.divisi_id == d.id %}selected{% endif %}>{{ d.nama }} ({{ d.kode }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Jabatan <span class="text-rose-500">*</span></label>
+                    <input type="text" name="jabatan" value="{{ anggota.jabatan|default:'Staff' }}" required placeholder="Contoh: Staff Ahli / Ketua" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Angkatan</label>
+                    <input type="number" name="angkatan" value="{{ anggota.angkatan|default:2024 }}" required min="2020" max="2030" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor WhatsApp / HP</label>
+                    <input type="text" name="no_hp" value="{{ anggota.no_hp|default:'' }}" placeholder="Contoh: 081234567890" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                    <p class="text-[10px] text-slate-400 mt-1">Digunakan untuk fitur pengingat tagihan otomatis (wa.me)</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Alamat Email (Opsional)</label>
+                    <input type="email" name="email" value="{{ anggota.email|default:'' }}" placeholder="mahasiswa@univ.ac.id" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                </div>
+            </div>
+
+            {% if anggota %}
+            <div class="pt-2">
+                <label class="flex items-center space-x-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                    <input type="checkbox" name="status_aktif" {% if anggota.status_aktif %}checked{% endif %} class="rounded text-emerald-600 focus:ring-emerald-500">
+                    <span>Status Keanggotaan Aktif (Mengikuti kewajiban iuran kas rutin)</span>
+                </label>
+            </div>
+            {% endif %}
+
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-2">
+                <a href="{% url 'anggota_list' %}" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium">Batal</a>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-md shadow-emerald-600/30">
+                    Simpan Anggota
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

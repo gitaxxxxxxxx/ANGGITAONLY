@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% load kas_tags %}
+
+{% block title %}Daftar Anggota Ormawa{% endblock %}
+{% block header_title %}Manajemen Anggota Organisasi{% endblock %}
+{% block header_subtitle %}Data seluruh anggota kemahasiswaan dan status partisipasi kas{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Filter & Add Bar -->
+    <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <form method="GET" action="{% url 'anggota_list' %}" class="flex flex-wrap items-center gap-3">
+            <!-- Search -->
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                </span>
+                <input type="text" name="search" value="{{ search }}" placeholder="Cari nama, NIM, jabatan..." class="pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 w-56">
+            </div>
+
+            <!-- Divisi -->
+            <select name="divisi" onchange="this.form.submit()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="">Semua Divisi</option>
+                {% for d in divisi_list %}
+                <option value="{{ d.id }}" {% if divisi_id == d.id|stringformat:"s" %}selected{% endif %}>{{ d.nama }}</option>
+                {% endfor %}
+            </select>
+
+            <!-- Status -->
+            <select name="status" onchange="this.form.submit()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="">Semua Status</option>
+                <option value="aktif" {% if status == 'aktif' %}selected{% endif %}>Hanya Aktif</option>
+                <option value="nonaktif" {% if status == 'nonaktif' %}selected{% endif %}>Non-Aktif</option>
+            </select>
+        </form>
+
+        <div class="flex items-center space-x-2">
+            {% if search or divisi_id or status %}
+            <a href="{% url 'anggota_list' %}" class="text-xs text-rose-600 hover:underline flex items-center mr-2">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 mr-1"></i> Reset
+            </a>
+            {% endif %}
+            <a href="{% url 'anggota_create' %}" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center text-xs shadow-sm">
+                <i data-lucide="user-plus" class="w-4 h-4 mr-1.5"></i> Tambah Anggota
+            </a>
+        </div>
+    </div>
+
+    <!-- Member Table -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-500 font-semibold uppercase tracking-wider border-b border-slate-100">
+                    <tr>
+                        <th class="py-3 px-4">Nama Lengkap</th>
+                        <th class="py-3 px-4">NIM</th>
+                        <th class="py-3 px-4">Divisi / Departemen</th>
+                        <th class="py-3 px-4">Jabatan</th>
+                        <th class="py-3 px-4">Angkatan</th>
+                        <th class="py-3 px-4">Kontak WhatsApp</th>
+                        <th class="py-3 px-4 text-center">Status</th>
+                        <th class="py-3 px-4 text-center">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-700">
+                    {% for ag in page_obj %}
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3.5 px-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-xs shrink-0">
+                                    {{ ag.nama|slice:":1" }}
+                                </div>
+                                <div>
+                                    <a href="{% url 'anggota_detail' ag.pk %}" class="font-bold text-slate-900 hover:text-emerald-700 text-sm block">
+                                        {{ ag.nama }}
+                                    </a>
+                                    <span class="text-[10px] text-slate-400">Gabung: {{ ag.tanggal_bergabung|date:"d M Y" }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-3.5 px-4 font-mono font-medium text-slate-600">
+                            {{ ag.nim }}
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700">
+                                {{ ag.divisi.nama }}
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4 font-medium text-slate-700">
+                            {{ ag.jabatan }}
+                        </td>
+                        <td class="py-3.5 px-4 font-medium text-slate-500">
+                            {{ ag.angkatan }}
+                        </td>
+                        <td class="py-3.5 px-4">
+                            {% if ag.no_hp %}
+                            <a href="https://wa.me/{{ ag.whatsapp_clean }}" target="_blank" class="inline-flex items-center text-emerald-600 hover:text-emerald-800 font-medium">
+                                <i data-lucide="phone" class="w-3.5 h-3.5 mr-1"></i> {{ ag.no_hp }}
+                            </a>
+                            {% else %}
+                            <span class="text-slate-300">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            {% if ag.status_aktif %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                Aktif
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500">
+                                Non-Aktif
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            <div class="flex items-center justify-center space-x-1">
+                                <a href="{% url 'anggota_detail' ag.pk %}" title="Detail & Riwayat Kas" class="p-1.5 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg">
+                                    <i data-lucide="eye" class="w-4 h-4"></i>
+                                </a>
+                                <a href="{% url 'anggota_update' ag.pk %}" title="Edit Data" class="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg">
+                                    <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                </a>
+                                <a href="{% url 'anggota_delete' ag.pk %}" title="Hapus" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="py-12 text-center text-slate-400">
+                            Belum ada anggota yang terdaftar atau cocok dengan pencarian.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <span>Halaman {{ page_obj.number }} dari {{ page_obj.paginator.num_pages }}</span>
+            <div class="flex items-center space-x-1">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if divisi_id %}&divisi={{ divisi_id }}{% endif %}{% if status %}&status={{ status }}{% endif %}" class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50">Sebelumnya</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if divisi_id %}&divisi={{ divisi_id }}{% endif %}{% if status %}&status={{ status }}{% endif %}" class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50">Selanjutnya</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

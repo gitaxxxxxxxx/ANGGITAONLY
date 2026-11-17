@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+{% load kas_tags %}
+
+{% block title %}Pengaturan Organisasi & Sistem{% endblock %}
+{% block header_title %}Pengaturan Organisasi & Sistem Kas{% endblock %}
+{% block header_subtitle %}Konfigurasi identitas ormawa, pejabat penandatangan LPJ, dan kategori transaksi{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-5xl">
+
+    <!-- Profil Organisasi Form -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                    <i data-lucide="building-2" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-base text-slate-800">Profil & Identitas Organisasi Kemahasiswaan</h3>
+                    <p class="text-xs text-slate-500">Informasi ini otomatis tercetak pada Kop Surat & Lembar Pengesahan LPJ</p>
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="p-6 space-y-5">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Organisasi <span class="text-rose-500">*</span></label>
+                    <input type="text" name="nama_organisasi" value="{{ profil.nama_organisasi }}" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Singkatan / Akronim <span class="text-rose-500">*</span></label>
+                    <input type="text" name="singkatan" value="{{ profil.singkatan }}" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Perguruan Tinggi / Universitas <span class="text-rose-500">*</span></label>
+                    <input type="text" name="nama_institusi" value="{{ profil.nama_institusi }}" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Periode Kepengurusan <span class="text-rose-500">*</span></label>
+                    <input type="text" name="periode_kepengurusan" value="{{ profil.periode_kepengurusan }}" required placeholder="Contoh: 2026/2027" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                </div>
+            </div>
+
+            <!-- Pejabat Penandatangan Laporan LPJ -->
+            <div class="pt-3 border-t border-slate-100">
+                <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Pejabat Pengesah Laporan Keuangan LPJ</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Ketua Umum -->
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/60 space-y-3">
+                        <span class="text-xs font-bold text-emerald-800 flex items-center">
+                            <i data-lucide="award" class="w-3.5 h-3.5 mr-1 text-emerald-600"></i> Ketua Umum
+                        </span>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-500 mb-1">Nama Lengkap Ketua</label>
+                            <input type="text" name="nama_ketua" value="{{ profil.nama_ketua }}" required class="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-xs font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-500 mb-1">NIM Ketua</label>
+                            <input type="text" name="nim_ketua" value="{{ profil.nim_ketua }}" required class="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-xs font-mono">
+                        </div>
+                    </div>
+
+                    <!-- Bendahara Umum -->
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/60 space-y-3">
+                        <span class="text-xs font-bold text-emerald-800 flex items-center">
+                            <i data-lucide="wallet" class="w-3.5 h-3.5 mr-1 text-emerald-600"></i> Bendahara Umum
+                        </span>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-500 mb-1">Nama Lengkap Bendahara</label>
+                            <input type="text" name="nama_bendahara" value="{{ profil.nama_bendahara }}" required class="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-xs font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-500 mb-1">NIM Bendahara</label>
+                            <input type="text" name="nim_bendahara" value="{{ profil.nim_bendahara }}" required class="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-xs font-mono">
+                        </div>
+                    </div>
+
+                    <!-- Dosen Pembina -->
+                    <div class="sm:col-span-2 p-4 rounded-xl bg-slate-50 border border-slate-200/60 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="sm:col-span-2">
+                            <span class="text-xs font-bold text-emerald-800 flex items-center">
+                                <i data-lucide="shield" class="w-3.5 h-3.5 mr-1 text-emerald-600"></i> Dosen Pembina Kemahasiswaan
+                            </span>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-500 mb-1">Nama Lengkap & Gelar</label>
+                            <input type="text" name="nama_pembina" value="{{ profil.nama_pembina }}" required class="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-xs font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-500 mb-1">NIP Dosen Pembina</label>
+                            <input type="text" name="nip_pembina" value="{{ profil.nip_pembina }}" required class="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-xs font-mono">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kebijakan Finansial Kas -->
+            <div class="pt-3 border-t border-slate-100">
+                <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Kebijakan Kas & Modal Awal</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Nominal Iuran Kas Wajib Anggota (Rp/Bulan)</label>
+                        <div class="relative">
+                            <span class="absolute left-3.5 top-2.5 text-xs font-bold text-slate-400">Rp</span>
+                            <input type="number" name="nominal_kas_wajib" value="{{ profil.nominal_kas_wajib|stringformat:'.0f' }}" min="1000" step="1000" required class="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-800">
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-1">Besaran iuran kas yang ditagihkan per anggota setiap bulannya.</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Saldo Awal Kas Organisasi (Rp)</label>
+                        <div class="relative">
+                            <span class="absolute left-3.5 top-2.5 text-xs font-bold text-slate-400">Rp</span>
+                            <input type="number" name="saldo_awal" value="{{ profil.saldo_awal|stringformat:'.0f' }}" min="0" step="50000" required class="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-800">
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-1">Saldo kas riil peninggalan kepengurusan periode sebelumnya.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kontak & Sekretariat -->
+            <div class="pt-3 border-t border-slate-100">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Alamat Sekretariat</label>
+                        <input type="text" name="alamat_sekretariat" value="{{ profil.alamat_sekretariat }}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Email Resmi</label>
+                        <input type="email" name="email" value="{{ profil.email }}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm">
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end">
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-md shadow-emerald-600/30">
+                    Simpan Perubahan Pengaturan
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Manajemen Kategori Transaksi -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-6">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
+                    <i data-lucide="tag" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-base text-slate-800">Master Data Kategori Transaksi</h3>
+                    <p class="text-xs text-slate-500">Kelola pos anggaran pemasukan dan pos belanja pengeluaran</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Category Form -->
+        <form action="{% url 'kategori_create' %}" method="POST" class="bg-slate-50 p-4 rounded-xl border border-slate-200/60 grid grid-cols-1 sm:grid-cols-4 gap-3">
+            {% csrf_token %}
+            <div>
+                <label class="block text-[11px] font-semibold text-slate-500 mb-1">Tipe</label>
+                <select name="jenis" required class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-medium">
+                    <option value="masuk">Pemasukan (Masuk)</option>
+                    <option value="keluar" selected>Pengeluaran (Keluar)</option>
+                </select>
+            </div>
+            <div class="sm:col-span-2">
+                <label class="block text-[11px] font-semibold text-slate-500 mb-1">Nama Kategori Baru</label>
+                <input type="text" name="nama" required placeholder="Contoh: Honor Narasumber Workshop" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs">
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-semibold">
+                    + Tambah Kategori
+                </button>
+            </div>
+        </form>
+
+        <!-- Category Lists Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <!-- Kategori Masuk -->
+            <div>
+                <h4 class="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-2 flex items-center">
+                    <i data-lucide="arrow-down-left" class="w-3.5 h-3.5 mr-1 text-emerald-600"></i> Kategori Pemasukan
+                </h4>
+                <div class="space-y-1.5">
+                    {% for km in kategori_masuk %}
+                    <div class="flex items-center justify-between p-2.5 rounded-lg bg-emerald-50/40 border border-emerald-100 text-xs">
+                        <span class="font-medium text-slate-800">{{ km.nama }}</span>
+                        {% if km.is_iuran_kas %}
+                        <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-200 text-emerald-900 font-bold">Sistem (Iuran)</span>
+                        {% else %}
+                        <a href="{% url 'kategori_delete' km.pk %}" onclick="return confirm('Yakin ingin menghapus kategori ini?')" class="text-slate-400 hover:text-rose-600">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Kategori Keluar -->
+            <div>
+                <h4 class="text-xs font-bold text-rose-800 uppercase tracking-wider mb-2 flex items-center">
+                    <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 mr-1 text-rose-600"></i> Kategori Pengeluaran
+                </h4>
+                <div class="space-y-1.5">
+                    {% for kk in kategori_keluar %}
+                    <div class="flex items-center justify-between p-2.5 rounded-lg bg-rose-50/40 border border-rose-100 text-xs">
+                        <span class="font-medium text-slate-800">{{ kk.nama }}</span>
+                        <a href="{% url 'kategori_delete' kk.pk %}" onclick="return confirm('Yakin ingin menghapus kategori ini?')" class="text-slate-400 hover:text-rose-600">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

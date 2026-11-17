@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load kas_tags %}
+
+{% block title %}Detail Anggota - {{ anggota.nama }}{% endblock %}
+{% block header_title %}Profil & Riwayat Kas Anggota{% endblock %}
+{% block header_subtitle %}Kartu riwayat pembayaran iuran kas dan identitas mahasiswa{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <!-- Profile Header Card -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="flex items-center space-x-4">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-extrabold text-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                {{ anggota.nama|slice:":1" }}
+            </div>
+            <div>
+                <div class="flex items-center space-x-2">
+                    <h2 class="text-xl font-bold text-slate-900">{{ anggota.nama }}</h2>
+                    {% if anggota.status_aktif %}
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">Aktif</span>
+                    {% else %}
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500">Non-Aktif</span>
+                    {% endif %}
+                </div>
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 mt-1">
+                    <span class="font-mono text-slate-700 font-semibold">NIM: {{ anggota.nim }}</span>
+                    <span>&bull;</span>
+                    <span class="text-emerald-700 font-medium">{{ anggota.divisi.nama }} ({{ anggota.jabatan }})</span>
+                    <span>&bull;</span>
+                    <span>Angkatan {{ anggota.angkatan }}</span>
+                </div>
+                {% if anggota.no_hp %}
+                <div class="mt-2">
+                    <a href="https://wa.me/{{ anggota.whatsapp_clean }}" target="_blank" class="inline-flex items-center text-xs text-emerald-600 hover:text-emerald-800 font-semibold">
+                        <i data-lucide="message-circle" class="w-3.5 h-3.5 mr-1"></i> WhatsApp: {{ anggota.no_hp }}
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <a href="{% url 'anggota_update' anggota.pk %}" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center">
+                <i data-lucide="edit-3" class="w-3.5 h-3.5 mr-1.5"></i> Edit Profil
+            </a>
+            <a href="{% url 'anggota_list' %}" class="px-3 py-2 text-slate-400 hover:text-slate-700 rounded-xl text-xs font-medium">
+                Kembali
+            </a>
+        </div>
+    </div>
+
+    <!-- Dues Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Iuran Lunas ({{ tahun }})</span>
+            <p class="text-2xl font-bold text-emerald-600 mt-1">{{ total_lunas|rupiah }}</p>
+        </div>
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Sisa Tunggakan ({{ tahun }})</span>
+            <p class="text-2xl font-bold text-rose-600 mt-1">{{ total_tunggakan|rupiah }}</p>
+        </div>
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Status Kepatuhan</span>
+            <p class="text-2xl font-bold {% if total_tunggakan == 0 %}text-emerald-700{% else %}text-amber-600{% endif %} mt-1">
+                {% if total_tunggakan == 0 %}Taat Kas (100%){% else %}Ada Tunggakan{% endif %}
+            </p>
+        </div>
+    </div>
+
+    <!-- Monthly Payment Breakdown Table -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="font-bold text-base text-slate-800">Riwayat Pembayaran Kas Rutin (Tahun {{ tahun }})</h3>
+            <form method="GET" class="flex items-center space-x-2">
+                <label class="text-xs text-slate-500">Tahun:</label>
+                <select name="tahun" onchange="this.form.submit()" class="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold">
+                    {% for t in tahun_options %}
+                    <option value="{{ t }}" {% if tahun == t %}selected{% endif %}>{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-500 font-semibold uppercase tracking-wider border-b border-slate-100">
+                    <tr>
+                        <th class="py-3 px-4">Bulan</th>
+                        <th class="py-3 px-4 text-right">Tagihan Wajib</th>
+                        <th class="py-3 px-4 text-center">Status</th>
+                        <th class="py-3 px-4 text-right">Nominal Terbayar</th>
+                        <th class="py-3 px-4">Tanggal Pembayaran</th>
+                        <th class="py-3 px-4">Metode</th>
+                        <th class="py-3 px-4 text-center">Aksi Cepat</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-700">
+                    {% for iuran in iuran_list %}
+                    <tr class="hover:bg-slate-50/70 transition-colors">
+                        <td class="py-3.5 px-4 font-bold text-slate-800">
+                            {{ iuran.periode.nama_periode }}
+                        </td>
+                        <td class="py-3.5 px-4 text-right font-mono text-slate-500">
+                            {{ iuran.periode.nominal|rupiah }}
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            {% if iuran.status == 'lunas' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                <i data-lucide="check" class="w-3 h-3 mr-1"></i> Lunas
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
+                                Belum Lunas
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-right font-bold {% if iuran.status == 'lunas' %}text-emerald-600{% else %}text-slate-400{% endif %}">
+                            {{ iuran.nominal_dibayar|rupiah }}
+                        </td>
+                        <td class="py-3.5 px-4 text-slate-500">
+                            {{ iuran.tanggal_bayar|date:"d M Y"|default:"-" }}
+                        </td>
+                        <td class="py-3.5 px-4 text-slate-600">
+                            {{ iuran.metode_pembayaran }}
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            <a href="{% url 'iuran_toggle_status' iuran.pk %}" class="px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors {% if iuran.status == 'lunas' %}bg-rose-50 text-rose-700 hover:bg-rose-100{% else %}bg-emerald-600 text-white hover:bg-emerald-700{% endif %}">
+                                {% if iuran.status == 'lunas' %}Batal Lunas{% else %}Tandai Lunas{% endif %}
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-8 text-center text-slate-400">
+                            Belum ada periode kas terdaftar untuk tahun ini.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

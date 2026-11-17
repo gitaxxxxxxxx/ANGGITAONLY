@@ -1,0 +1,241 @@
+{% load kas_tags %}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LPJ Kas Keuangan - {{ profil.nama_organisasi }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            color: #000;
+            background-color: #f3f4f6;
+        }
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            margin: 10mm auto;
+            background: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .kop-line {
+            border-top: 3px solid #000;
+            border-bottom: 1px solid #000;
+            height: 4px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+        }
+        table, th, td {
+            border: 1px solid #000;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 4px 6px;
+        }
+        @media print {
+            body {
+                background: white;
+            }
+            .page {
+                width: 100%;
+                margin: 0;
+                padding: 10mm 15mm;
+                box-shadow: none;
+            }
+            .no-print {
+                display: none !important;
+            }
+            @page {
+                size: A4;
+                margin: 10mm;
+            }
+        }
+    </style>
+</head>
+<body class="text-sm">
+
+    <!-- Floating Top Control Bar (Screen only) -->
+    <div class="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-md text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center space-x-4 no-print z-50 font-sans">
+        <div class="flex items-center space-x-2">
+            <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-xs font-semibold">Mode Siap Cetak (A4 Resmi)</span>
+        </div>
+        <div class="h-4 w-px bg-slate-700"></div>
+        <button onclick="window.print()" class="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs rounded-xl flex items-center transition-colors">
+            <i data-lucide="printer" class="w-3.5 h-3.5 mr-1.5"></i> Cetak / Simpan PDF
+        </button>
+        <button onclick="window.close()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-xl transition-colors">
+            Tutup
+        </button>
+    </div>
+
+    <!-- Printable A4 Paper Document -->
+    <div class="page">
+        <!-- KOP SURAT RESMI ORMAWA -->
+        <div class="text-center relative">
+            <h3 class="text-base font-bold uppercase tracking-wider">{{ profil.nama_institusi }}</h3>
+            <h2 class="text-lg font-extrabold uppercase tracking-wide">{{ profil.nama_organisasi }}</h2>
+            <h4 class="text-xs font-semibold uppercase tracking-widest text-slate-700">PERIODE KEPENGURUSAN {{ profil.periode_kepengurusan }}</h4>
+            <p class="text-[11px] italic mt-1 text-slate-600">
+                Sekretariat: {{ profil.alamat_sekretariat }} | Email: {{ profil.email }} | Telp: {{ profil.no_telepon }}
+            </p>
+        </div>
+        <!-- Garis Ganda Kop Surat -->
+        <div class="kop-line"></div>
+
+        <!-- JUDUL DOKUMEN -->
+        <div class="text-center my-4">
+            <h1 class="text-base font-bold uppercase underline">LAPORAN PERTANGGUNGJAWABAN KEUANGAN KAS</h1>
+            <p class="text-xs mt-0.5">Nomor: 042/LPJ-KAS/{{ profil.singkatan }}/{{ tahun }}</p>
+            <p class="text-xs font-medium italic mt-1">Periode: {{ tgl_awal|date:"d F Y" }} s.d. {{ tgl_akhir|date:"d F Y" }}</p>
+        </div>
+
+        <!-- BAGIAN 1: IKHTISAR KEUANGAN -->
+        <div class="my-4">
+            <h4 class="font-bold text-xs uppercase mb-1">I. IKHTISAR POSISI SALDO KAS</h4>
+            <table class="w-full text-xs">
+                <tbody>
+                    <tr class="bg-gray-100 font-semibold">
+                        <td class="w-2/3">A. Saldo Kas Awal Periode</td>
+                        <td class="w-1/3 text-right font-mono">{{ profil.saldo_awal|rupiah }}</td>
+                    </tr>
+                    <tr>
+                        <td>B. Total Penerimaan / Kas Masuk</td>
+                        <td class="text-right font-mono text-emerald-800 font-bold">+{{ total_masuk|rupiah }}</td>
+                    </tr>
+                    <tr>
+                        <td>C. Total Pengeluaran / Kas Keluar</td>
+                        <td class="text-right font-mono text-rose-800 font-bold">-{{ total_keluar|rupiah }}</td>
+                    </tr>
+                    <tr class="bg-gray-200 font-extrabold text-sm">
+                        <td>D. Saldo Kas Akhir (Tutup Buku) (A + B - C)</td>
+                        <td class="text-right font-mono">{{ saldo_akhir|rupiah }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- BAGIAN 2: RINCIAN PEMASUKAN KAS -->
+        <div class="my-5">
+            <h4 class="font-bold text-xs uppercase mb-1">II. RINCIAN KAS MASUK (PEMASUKAN)</h4>
+            <table class="w-full text-xs">
+                <thead class="bg-gray-100 font-bold text-center">
+                    <tr>
+                        <th style="width: 5%">No</th>
+                        <th style="width: 15%">Tanggal</th>
+                        <th style="width: 20%">Kategori</th>
+                        <th style="width: 42%">Uraian / Sumber Dana</th>
+                        <th style="width: 18%">Jumlah (Rp)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trx in transaksi_masuk %}
+                    <tr>
+                        <td class="text-center">{{ forloop.counter }}</td>
+                        <td class="text-center">{{ trx.tanggal|date:"d/m/Y" }}</td>
+                        <td>{{ trx.kategori.nama }}</td>
+                        <td>{{ trx.judul }}</td>
+                        <td class="text-right font-mono font-semibold">{{ trx.nominal|angka_id }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center italic py-2">Tidak ada transaksi kas masuk pada periode ini.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="bg-gray-100 font-bold">
+                    <tr>
+                        <td colspan="4" class="text-right pr-2">SUBTOTAL PEMASUKAN</td>
+                        <td class="text-right font-mono">{{ total_masuk|angka_id }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- BAGIAN 3: RINCIAN PENGELUARAN KAS -->
+        <div class="my-5">
+            <h4 class="font-bold text-xs uppercase mb-1">III. RINCIAN KAS KELUAR (PENGELUARAN & BELANJA)</h4>
+            <table class="w-full text-xs">
+                <thead class="bg-gray-100 font-bold text-center">
+                    <tr>
+                        <th style="width: 5%">No</th>
+                        <th style="width: 15%">Tanggal</th>
+                        <th style="width: 20%">Kategori</th>
+                        <th style="width: 42%">Uraian Belanja / Proker</th>
+                        <th style="width: 18%">Jumlah (Rp)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trx in transaksi_keluar %}
+                    <tr>
+                        <td class="text-center">{{ forloop.counter }}</td>
+                        <td class="text-center">{{ trx.tanggal|date:"d/m/Y" }}</td>
+                        <td>{{ trx.kategori.nama }}{% if trx.divisi_terkait %} ({{ trx.divisi_terkait.kode }}){% endif %}</td>
+                        <td>{{ trx.judul }}</td>
+                        <td class="text-right font-mono font-semibold">{{ trx.nominal|angka_id }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center italic py-2">Tidak ada transaksi kas keluar pada periode ini.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="bg-gray-100 font-bold">
+                    <tr>
+                        <td colspan="4" class="text-right pr-2">SUBTOTAL PENGELUARAN</td>
+                        <td class="text-right font-mono">{{ total_keluar|angka_id }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- BAGIAN 4: LEMBAR PENGESAHAN & TANDA TANGAN RESMI -->
+        <div class="mt-10 pt-4 break-inside-avoid">
+            <div class="text-right text-xs mb-4">
+                Ditetapkan di: Kampus Terpadu<br>
+                Pada tanggal: {{ tgl_cetak }}
+            </div>
+
+            <div class="grid grid-cols-2 gap-8 text-center text-xs">
+                <div>
+                    <p class="font-medium">Mengetahui,</p>
+                    <p class="font-bold">Ketua Umum {{ profil.singkatan }}</p>
+                    <div class="h-20 flex items-center justify-center">
+                        <span class="text-[10px] text-gray-400 italic">[Tanda Tangan & Stempel]</span>
+                    </div>
+                    <p class="font-bold underline uppercase">{{ profil.nama_ketua }}</p>
+                    <p>NIM. {{ profil.nim_ketua }}</p>
+                </div>
+
+                <div>
+                    <p class="font-medium">Dibuat Oleh,</p>
+                    <p class="font-bold">Bendahara Umum {{ profil.singkatan }}</p>
+                    <div class="h-20 flex items-center justify-center">
+                        <span class="text-[10px] text-gray-400 italic">[Tanda Tangan]</span>
+                    </div>
+                    <p class="font-bold underline uppercase">{{ profil.nama_bendahara }}</p>
+                    <p>NIM. {{ profil.nim_bendahara }}</p>
+                </div>
+            </div>
+
+            <!-- Tanda Tangan Pembina Ormawa -->
+            <div class="mt-8 text-center text-xs">
+                <p class="font-medium">Mengesahkan,</p>
+                <p class="font-bold">Dosen Pembina Kemahasiswaan</p>
+                <div class="h-20 flex items-center justify-center">
+                    <span class="text-[10px] text-gray-400 italic">[Tanda Tangan & NIP]</span>
+                </div>
+                <p class="font-bold underline uppercase">{{ profil.nama_pembina }}</p>
+                <p>NIP. {{ profil.nip_pembina }}</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

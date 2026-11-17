@@ -1123,7 +1123,7 @@ def login_view(request):
 
         # Alias: jika mengetik 'anggota', arahkan ke NIM mahasiswa pertama
         if username.lower() == 'anggota':
-            username = '240110262'
+            username = '2401010262'
 
         user = authenticate(request, username=username, password=password)
 
@@ -1172,7 +1172,7 @@ def portal_anggota_view(request):
         anggota = request.user.profil_anggota
     else:
         # Fallback untuk pengujian/preview
-        anggota = Anggota.objects.filter(nim='240110262').first() or Anggota.objects.first()
+        anggota = Anggota.objects.filter(nim='2401010262').first() or Anggota.objects.first()
 
     sinkronisasi_iuran_anggota(current_year)
 

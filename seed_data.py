@@ -106,7 +106,7 @@ def run_seed():
     User.objects.filter(is_staff=False, is_superuser=False).delete()
 
     anggota_raw = [
-        ('240110262', 'Ni Made Anggita Maharani', 'BPH', 'Sekretaris', 2024, '081234567001'),
+        ('2401010262', 'Ni Made Anggita Maharani', 'BPH', 'Sekretaris', 2024, '081234567001'),
         ('2401010259', 'I Made Apriana', 'PSDM', 'Kepala Divisi', 2024, '081234567002'),
         ('2401010505', 'Ngurah Putra Amerta Widhi Gunaya', 'KOMINFO', 'Staff Media & IT', 2024, '081234567003'),
         ('2401010838', 'Novansius Marijo Lende', 'SOSMA', 'Staff Pengabdian', 2024, '081234567004'),
@@ -116,7 +116,7 @@ def run_seed():
     user_anggota_demo, _ = User.objects.get_or_create(username='anggota', defaults={
         'first_name': 'Ni Made Anggita',
         'last_name': 'Maharani',
-        'email': '240110262@mahasiswa.univ.ac.id',
+        'email': '2401010262@mahasiswa.univ.ac.id',
         'is_staff': False,
         'is_superuser': False
     })
@@ -275,7 +275,7 @@ def run_seed():
     PengajuanIuran.objects.all().delete()
     from kas_app.views import generate_mock_transfer_receipt
 
-    ag_anggita = Anggota.objects.filter(nim='240110262').first()
+    ag_anggita = Anggota.objects.filter(nim='2401010262').first()
     p_okt = PeriodeKas.objects.filter(tahun=2026, bulan=10).first()
     if ag_anggita and p_okt:
         resi_anggita = generate_mock_transfer_receipt(
@@ -323,7 +323,7 @@ def run_seed():
     print(f"💎 Saldo Akhir Kas: Rp {saldo_akhir:,.0f}")
     print(f"👤 Login Bendahara : admin / admin123")
     print(f"👤 Login Anggota (Username = NIM, Password = NIM):")
-    print(f"   - 240110262 / 240110262 : Ni Made Anggita Maharani")
+    print(f"   - 2401010262 / 2401010262 : Ni Made Anggita Maharani")
     print(f"   - 2401010259 / 2401010259 : I Made Apriana")
     print(f"   - 2401010505 / 2401010505 : Ngurah Putra Amerta Widhi Gunaya")
     print(f"   - 2401010838 / 2401010838 : Novansius Marijo Lende")

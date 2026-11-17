@@ -190,8 +190,8 @@ def run_seed():
     # Pembayaran kas anggota juga akan otomatis mengaitkan catatan kas masuk
     kat_iuran = kat_dict['Iuran Kas Anggota']
 
-    # Delete existing auto iuran trx for fresh clean seeding
-    Transaksi.objects.filter(kategori=kat_iuran).delete()
+    # Delete existing transactions and iuran for fresh clean seeding
+    Transaksi.objects.all().delete()
     IuranKas.objects.all().delete()
 
     for idx, ag in enumerate(anggota_objs):
@@ -239,32 +239,36 @@ def run_seed():
                 )
     print("✅ Seluruh data matriks iuran kas anggota 2026 berhasil disinkronkan.")
 
-    # 8. Transaksi Kas Masuk & Keluar Non-Iuran (Simulasi Operasional BEM 2026)
+    # 8. Transaksi Kas Masuk & Keluar Non-Iuran (Simulasi Operasional BEM 2026 - Data Kampus & Sponsorship)
     transaksi_sample = [
-        # PEMASUKAN
-        ('masuk', 'Subsidi Fakultas / Rektorat', 2500000, 'Pencairan Dana DIPA Kemahasiswaan Termin 1', date(2026, 1, 15), 'BPH', 'Bantuan operasional ormawa semester genap dari Dekanat Fasilkom'),
-        ('masuk', 'Dana Usaha (Danus)', 450000, 'Keuntungan Penjualan Merchandise Dies Natalis', date(2026, 2, 20), 'DANUS', 'Laba bersih pre-order kaos ormawa dan tote bag'),
-        ('masuk', 'Sponsorship & Kemitraan', 3000000, 'Sponsorship PT Teknologi Nusantara', date(2026, 3, 10), 'DANUS', 'Dana kemitraan utama seminar nasional teknologi dan AI'),
-        ('masuk', 'Dana Usaha (Danus)', 320000, 'Penjualan Snack Box & Coffee di Rapat Pleno', date(2026, 4, 12), 'DANUS', 'Danus konsumsi sidang pleno'),
-        ('masuk', 'Donasi Alumni & Simpatisan', 1200000, 'Sumbangan Alumni Angkatan 2018', date(2026, 5, 25), 'BPH', 'Donasi sukarela untuk kas pengembangan ormawa'),
-        ('masuk', 'Subsidi Fakultas / Rektorat', 2000000, 'Pencairan Dana Kemahasiswaan Termin 2', date(2026, 8, 18), 'BPH', 'Bantuan operasional semester ganjil'),
-        ('masuk', 'Dana Usaha (Danus)', 680000, 'Bazar Kewirausahaan Mahasiswa Expo', date(2026, 10, 5), 'DANUS', 'Stand makanan dan minuman di festival kampus'),
+        # PEMASUKAN (Sponsorship, Dana Usaha Kampus, BOK Kemahasiswaan Dekanat, Donasi Alumni)
+        ('masuk', 'Subsidi Fakultas / Rektorat', 3500000, 'Bantuan Operasional Kemahasiswaan (BOK) Dekanat Fasilkom Termin 1', date(2026, 1, 15), 'BPH', 'Pencairan dana alokasi ormawa semester genap dari Dekanat Fasilkom'),
+        ('masuk', 'Dana Usaha (Danus)', 1250000, 'Dana Usaha: Pre-Order Kemeja PDH Resmi & Lanyard Ormawa', date(2026, 2, 10), 'DANUS', 'Keuntungan bersih penjualan seragam PDH angkatan baru dan gantungan kunci ormawa'),
+        ('masuk', 'Sponsorship & Kemitraan', 4500000, 'Sponsorship PT Telkomsel - Dies Natalis Fasilkom & Hackathon 2026', date(2026, 3, 5), 'DANUS', 'Pencairan dana sponsor paket platinum PT Telkomsel Indonesia untuk event tahunan kampus'),
+        ('masuk', 'Sponsorship & Kemitraan', 3000000, 'Sponsorship Bank Mandiri - Kemitraan Seminar FinTech & Karir Perbankan', date(2026, 3, 18), 'DANUS', 'Dana kemitraan edukasi perbankan digital dan literasi keuangan mahasiswa Fasilkom'),
+        ('masuk', 'Dana Usaha (Danus)', 480000, 'Dana Usaha: Paid Promote Instagram Ormawa Dies Natalis', date(2026, 4, 2), 'KOMINFO', 'Laba jasa publikasi paid promote event eksternal di feed dan story official Instagram BEM'),
+        ('masuk', 'Sponsorship & Kemitraan', 2500000, 'Sponsorship Dicoding Academy - Pelatihan Web & Sertifikasi Mahasiswa', date(2026, 5, 8), 'DANUS', 'Dukungan sponsor pelatihan developer web, voucher sertifikasi, dan merchandise peserta'),
+        ('masuk', 'Donasi Alumni & Simpatisan', 1500000, 'Donasi Ikatan Alumni Fasilkom (ILUNI) untuk Kas Ormawa', date(2026, 5, 25), 'BPH', 'Sumbangan sukarela alumni angkatan 2018 untuk program kerja kemahasiswaan dan kas darurat'),
+        ('masuk', 'Subsidi Fakultas / Rektorat', 3000000, 'Bantuan Operasional Kemahasiswaan (BOK) Dekanat Fasilkom Termin 2', date(2026, 8, 12), 'BPH', 'Pencairan subsidi operasional ormawa semester ganjil dari kas kemahasiswaan fakultas'),
+        ('masuk', 'Sponsorship & Kemitraan', 2000000, 'Sponsorship PT Paragon Technology / Wardah Campus Roadshow', date(2026, 9, 14), 'DANUS', 'Sponsor seminar grooming, personal branding, and career development mahasiswa'),
+        ('masuk', 'Dana Usaha (Danus)', 850000, 'Dana Usaha: Stand Bazar Makanan & Minuman Expo Kewirausahaan Kampus', date(2026, 10, 6), 'DANUS', 'Penjualan minuman kekinian, kopi cold brew, dan snack di festival expo ormawa kampus'),
 
-        # PENGELUARAN
-        ('keluar', 'Pengadaan ATK & Kesekretariatan', 215000, 'Pembelian Kertas A4, Map, dan Tinta Printer', date(2026, 1, 18), 'BPH', 'Pengadaan perlengkapan administrasi awal kepengurusan'),
-        ('keluar', 'Konsumsi Rapat Koordinasi', 180000, 'Konsumsi Rapat Kerja Internal Pengurus', date(2026, 1, 22), 'BPH', 'Snack dan makan siang rapat kerja kepengurusan'),
-        ('keluar', 'Pengembangan IT & Media Sosial', 350000, 'Perpanjangan Domain & Hosting Website Ormawa', date(2026, 2, 5), 'KOMINFO', 'Biaya seDomain bemfasilkom.org selama 1 tahun'),
-        ('keluar', 'Program Kerja (Proker)', 1850000, 'Pelaksanaan Latihan Dasar Kepemimpinan (LDKM)', date(2026, 2, 28), 'PSDM', 'Honor pemateri, sertifikat, dan perlengkapan modul LDKM'),
-        ('keluar', 'Program Kerja (Proker)', 2400000, 'Seminar Nasional AI & Karir Industri Digital', date(2026, 3, 22), 'KOMINFO', 'Sewa sound system, plakat narasumber, dan banner kegiatan'),
-        ('keluar', 'Pengadaan ATK & Kesekretariatan', 125000, 'Cetak Buku Panduan & SOP Ormawa', date(2026, 4, 8), 'BPH', 'Penggandaan dokumen SOP untuk setiap divisi'),
-        ('keluar', 'Konsumsi Rapat Koordinasi', 145000, 'Konsumsi Rapat Evaluasi Triwulan 1', date(2026, 4, 30), 'BPH', 'Snack meeting evaluasi kinerja divisi'),
-        ('keluar', 'Bakti Sosial & Aksi Lapangan', 1100000, 'Penyaluran Paket Sembako Desa Binaan', date(2026, 5, 20), 'SOSMA', 'Program kerja Fasilkom Mengabdi di desa mitra'),
-        ('keluar', 'Akomodasi & Transportasi', 450000, 'Transportasi Delegasi Kongres Nasional', date(2026, 6, 15), 'KASTRAT', 'Tiket kereta delegasi BEM menghadiri kongres mahasiswa'),
-        ('keluar', 'Program Kerja (Proker)', 1600000, 'Pelatihan Public Speaking & Debat Mahasiswa', date(2026, 7, 24), 'PSDM', 'Biaya sewa ruangan multimedia dan narasumber eksternal'),
-        ('keluar', 'Pengadaan ATK & Kesekretariatan', 95000, 'Stempel Organisasi & Tinta Cadangan', date(2026, 8, 10), 'BPH', 'Penggantian stempel resmi BEM yang rusak'),
-        ('keluar', 'Pengembangan IT & Media Sosial', 150000, 'Langganan Akun Canva Pro Tim Medkom', date(2026, 9, 2), 'KOMINFO', 'Akun desain grafis feeds Instagram dan publikasi'),
-        ('keluar', 'Program Kerja (Proker)', 1350000, 'Kajian Isu & Diskusi Publik Pendidikan', date(2026, 10, 14), 'KASTRAT', 'Konsumsi peserta dan sertifikat diskusi interaktif'),
-        ('keluar', 'Konsumsi Rapat Koordinasi', 160000, 'Konsumsi Rapat Persiapan LPJ Akhir Tahun', date(2026, 11, 10), 'BPH', 'Rapat koordinasi penyusunan LPJ'),
+        # PENGELUARAN (Operasional Kampus, Proker, Dies Natalis, ATK, Konsumsi Rapat)
+        ('keluar', 'Pengadaan ATK & Kesekretariatan', 220000, 'Pengadaan Kertas A4, Map Berkas, dan Materai Pelantikan Pengurus', date(2026, 1, 18), 'BPH', 'Perlengkapan administrasi SK pelantikan dan arsip ormawa awal kepengurusan'),
+        ('keluar', 'Konsumsi Rapat Koordinasi', 240000, 'Konsumsi Rapat Musyawarah Kerja (Muker) Awal Periode', date(2026, 1, 22), 'BPH', 'Snack dan makan siang 35 orang pengurus ormawa di ruang sidang kampus'),
+        ('keluar', 'Pengembangan IT & Media Sosial', 450000, 'Perpanjangan Domain bemfasilkom.ac.id & Cloud Hosting Ormawa', date(2026, 2, 5), 'KOMINFO', 'Biaya server website resmi ormawa dan database kepengurusan selama 1 tahun'),
+        ('keluar', 'Program Kerja (Proker)', 1850000, 'Pelaksanaan Latihan Dasar Kepemimpinan Mahasiswa (LDKM)', date(2026, 2, 28), 'PSDM', 'Honor narasumber materi kepemimpinan mahasiswa, sertifikat, dan modul latihan'),
+        ('keluar', 'Program Kerja (Proker)', 2200000, 'Sewa Gedung Serbaguna (GSG) Kampus & Sound System Dies Natalis', date(2026, 3, 20), 'KOMINFO', 'Penyewaan venue acara seminar nasional dies natalis dan paket sound system 5000 watt'),
+        ('keluar', 'Pengadaan ATK & Kesekretariatan', 380000, 'Cetak Spanduk Banner 4x2m & Backdrop Panggung Dies Natalis', date(2026, 3, 21), 'BPH', 'Digital printing spanduk sponsor Telkomsel/Mandiri dan backdrop panggung utama'),
+        ('keluar', 'Konsumsi Rapat Koordinasi', 145000, 'Konsumsi Rapat Koordinasi Evaluasi Panitia Dies Natalis', date(2026, 4, 5), 'BPH', 'Konsumsi rapat pembubaran panitia dies natalis Fasilkom'),
+        ('keluar', 'Bakti Sosial & Aksi Lapangan', 1250000, 'Penyaluran Paket Sembako Program Fasilkom Mengabdi di Desa Binaan', date(2026, 5, 20), 'SOSMA', 'Pengadaan 40 paket sembako untuk warga lingkar kampus binaan ormawa'),
+        ('keluar', 'Akomodasi & Transportasi', 550000, 'Transportasi & Tiket Kereta Delegasi Kongres Mahasiswa Nasional', date(2026, 6, 15), 'KASTRAT', 'Biaya keberangkatan delegasi ketua dan sekjen ormawa ke forum nasional'),
+        ('keluar', 'Program Kerja (Proker)', 1600000, 'Workshop Career Preparation & Talkshow Pemateri (Sponsor Dicoding)', date(2026, 7, 24), 'PSDM', 'Honorarium pembicara industri teknologi dan sertifikat peserta'),
+        ('keluar', 'Pengadaan ATK & Kesekretariatan', 95000, 'Stempel Organisasi, Bak Tinta, & Tinta Cadangan', date(2026, 8, 10), 'BPH', 'Pembaruan stempel resmi BEM Fasilkom periode 2026/2027'),
+        ('keluar', 'Pengembangan IT & Media Sosial', 150000, 'Langganan Akun Canva Pro Tim Medkom Ormawa (1 Tahun)', date(2026, 9, 2), 'KOMINFO', 'Akun tim desain untuk konten feed Instagram ormawa dan publikasi proker'),
+        ('keluar', 'Program Kerja (Proker)', 1400000, 'Penyelenggaraan Diskusi Publik & Kajian Advokasi UKT Kampus', date(2026, 10, 14), 'KASTRAT', 'Konsumsi peserta dan narasumber forum advokasi kemahasiswaan Fasilkom'),
+        ('keluar', 'Konsumsi Rapat Koordinasi', 160000, 'Konsumsi Rapat Pleno Koordinasi LPJ Akhir Tahun', date(2026, 11, 10), 'BPH', 'Snack rapat persiapan laporan pertanggungjawaban kepengurusan'),
+        ('keluar', 'Pengadaan ATK & Kesekretariatan', 350000, 'Cetak Buku Hardcover Laporan Pertanggungjawaban (LPJ) Dekanat', date(2026, 11, 15), 'BPH', 'Jilid hardcover 5 eksemplar LPJ untuk arsip Dekanat Fasilkom dan Rektorat'),
     ]
 
     for jenis, kat_nama, nominal, judul, tgl, div_kode, ket in transaksi_sample:

@@ -114,8 +114,8 @@
                     </a>
 
                     {% else %}
-                    <!-- MENU BENDAHARA / PENGURUS -->
-                    <p class="px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Menu Bendahara</p>
+                    <!-- MENU ADMIN -->
+                    <p class="px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Menu Admin</p>
 
                     <a href="{% url 'dashboard' %}" class="flex items-center px-3 py-2.5 rounded-xl font-medium text-sm transition-colors {% if request.resolver_match.url_name == 'dashboard' %}bg-emerald-50 text-emerald-700 font-semibold{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">
                         <i data-lucide="layout-dashboard" class="w-4 h-4 mr-3 {% if request.resolver_match.url_name == 'dashboard' %}text-emerald-600{% else %}text-slate-400{% endif %}"></i>
@@ -197,11 +197,11 @@
                                 {% elif request.user.is_authenticated %}
                                     {{ request.user.first_name|default:request.user.username }}
                                 {% else %}
-                                    Bendahara Umum
+                                    Admin
                                 {% endif %}
                             </p>
                             <p class="text-slate-500 text-[10px]">
-                                {% if user_anggota %}Anggota Mahasiswa{% else %}Administrator Kas{% endif %}
+                                {% if user_anggota %}Anggota{% else %}Admin{% endif %}
                             </p>
                         </div>
                     </div>

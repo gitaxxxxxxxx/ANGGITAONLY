@@ -125,7 +125,7 @@ def run_seed():
 
     anggota_objs = []
     for nim, nama, div_kode, jab, angk, hp in anggota_raw:
-        # Buat user per mahasiswa dengan username = NIM
+        # Buat user per mahasiswa dengan username = NIM dan password = NIM
         u_obj, _ = User.objects.get_or_create(username=nim, defaults={
             'first_name': nama.split()[0],
             'last_name': ' '.join(nama.split()[1:]),
@@ -133,7 +133,7 @@ def run_seed():
             'is_staff': False,
             'is_superuser': False
         })
-        u_obj.set_password('anggota123')
+        u_obj.set_password(nim)
         u_obj.save()
 
         ag, _ = Anggota.objects.get_or_create(
@@ -322,11 +322,11 @@ def run_seed():
     print(f"📉 Total Kas Keluar: Rp {total_out:,.0f}")
     print(f"💎 Saldo Akhir Kas: Rp {saldo_akhir:,.0f}")
     print(f"👤 Login Bendahara : admin / admin123")
-    print(f"👤 Login Anggota (NIM / anggota123):")
-    print(f"   - 240110262 : Ni Made Anggita Maharani")
-    print(f"   - 2401010259 : I Made Apriana")
-    print(f"   - 2401010505 : Ngurah Putra Amerta Widhi Gunaya")
-    print(f"   - 2401010838 : Novansius Marijo Lende")
+    print(f"👤 Login Anggota (Username = NIM, Password = NIM):")
+    print(f"   - 240110262 / 240110262 : Ni Made Anggita Maharani")
+    print(f"   - 2401010259 / 2401010259 : I Made Apriana")
+    print(f"   - 2401010505 / 2401010505 : Ngurah Putra Amerta Widhi Gunaya")
+    print(f"   - 2401010838 / 2401010838 : Novansius Marijo Lende")
     print("==================================================")
 
 if __name__ == '__main__':

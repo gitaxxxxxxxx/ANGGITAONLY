@@ -100,30 +100,23 @@ def run_seed():
         kat_dict[nama] = k
     print("✅ Kategori transaksi berhasil dibuat.")
 
-    # 5. Anggota Organisasi (15 Mahasiswa)
+    # 5. Anggota Organisasi (4 Mahasiswa Sesuai Permintaan)
+    # Hapus data anggota & user anggota lama agar database bersih
+    Anggota.objects.all().delete()
+    User.objects.filter(is_staff=False, is_superuser=False).delete()
+
     anggota_raw = [
-        ('2308101001', 'Muhammad Fikri Pratama', 'BPH', 'Ketua Umum', 2023, '081211112222'),
-        ('2308101015', 'Nabila Nur Azizah', 'BPH', 'Bendahara Umum', 2023, '081222223333'),
-        ('2308101020', 'Rafi Alamsyah', 'BPH', 'Sekretaris Umum', 2023, '081233334444'),
-        ('2408101004', 'Dimas Arya Nugraha', 'PSDM', 'Kepala Divisi', 2024, '081244445555'),
-        ('2408101012', 'Anisa Rahmawati', 'PSDM', 'Staff Ahli', 2024, '081255556666'),
-        ('2508101031', 'Bagus Saputra', 'PSDM', 'Staff Muda', 2025, '081266667777'),
-        ('2408101025', 'Kevin Christian', 'KOMINFO', 'Kepala Divisi', 2024, '081277778888'),
-        ('2408101038', 'Tiara Putri Ramadhani', 'KOMINFO', 'Staff Desain & Medkom', 2024, '081288889999'),
-        ('2508101045', 'Muhammad Farhan', 'KOMINFO', 'Staff Web Dev', 2025, '081299990000'),
-        ('2408101018', 'Aditya Pratama', 'KASTRAT', 'Kepala Divisi', 2024, '081311112222'),
-        ('2508101022', 'Zahra Salma Aulia', 'KASTRAT', 'Staff Riset', 2025, '081322223333'),
-        ('2408101033', 'Rian Hidayat', 'DANUS', 'Kepala Divisi', 2024, '081333334444'),
-        ('2508101050', 'Laras Salsabila', 'DANUS', 'Staff Merchandise', 2025, '081344445555'),
-        ('2408101009', 'Gilang Ramadhan', 'SOSMA', 'Kepala Divisi', 2024, '081355556666'),
-        ('2508101019', 'Putri Ayu Wandira', 'SOSMA', 'Staff Pengabdian', 2025, '081366667777'),
+        ('240110262', 'Ni Made Anggita Maharani', 'BPH', 'Sekretaris', 2024, '081234567001'),
+        ('2401010259', 'I Made Apriana', 'PSDM', 'Kepala Divisi', 2024, '081234567002'),
+        ('2401010505', 'Ngurah Putra Amerta Widhi Gunaya', 'KOMINFO', 'Staff Media & IT', 2024, '081234567003'),
+        ('2401010838', 'Novansius Marijo Lende', 'SOSMA', 'Staff Pengabdian', 2024, '081234567004'),
     ]
 
-    # User khusus demo role Anggota: anggota / anggota123
+    # User alias demo role Anggota: anggota / anggota123
     user_anggota_demo, _ = User.objects.get_or_create(username='anggota', defaults={
-        'first_name': 'Dimas Arya',
-        'last_name': 'Nugraha',
-        'email': 'dimas@mahasiswa.univ.ac.id',
+        'first_name': 'Ni Made Anggita',
+        'last_name': 'Maharani',
+        'email': '240110262@mahasiswa.univ.ac.id',
         'is_staff': False,
         'is_superuser': False
     })
@@ -132,21 +125,18 @@ def run_seed():
 
     anggota_objs = []
     for nim, nama, div_kode, jab, angk, hp in anggota_raw:
-        # Buat user per mahasiswa
-        if nim == '2408101004':
-            u_obj = user_anggota_demo
-        else:
-            u_obj, _ = User.objects.get_or_create(username=nim, defaults={
-                'first_name': nama.split()[0],
-                'last_name': ' '.join(nama.split()[1:]),
-                'email': f"{nim}@mahasiswa.univ.ac.id",
-                'is_staff': False,
-                'is_superuser': False
-            })
-            u_obj.set_password('password123')
-            u_obj.save()
+        # Buat user per mahasiswa dengan username = NIM
+        u_obj, _ = User.objects.get_or_create(username=nim, defaults={
+            'first_name': nama.split()[0],
+            'last_name': ' '.join(nama.split()[1:]),
+            'email': f"{nim}@mahasiswa.univ.ac.id",
+            'is_staff': False,
+            'is_superuser': False
+        })
+        u_obj.set_password('anggota123')
+        u_obj.save()
 
-        ag, created = Anggota.objects.get_or_create(
+        ag, _ = Anggota.objects.get_or_create(
             nim=nim,
             defaults={
                 'nama': nama,
@@ -160,11 +150,11 @@ def run_seed():
                 'user': u_obj
             }
         )
-        if not created and not ag.user:
+        if not ag.user:
             ag.user = u_obj
             ag.save()
         anggota_objs.append(ag)
-    print(f"✅ {len(anggota_objs)} Anggota mahasiswa berhasil didaftarkan & akun login dibuat.")
+    print(f"✅ {len(anggota_objs)} Anggota mahasiswa resmi berhasil didaftarkan dengan login NIM.")
 
     # 6. Periode Kas 2026 (Januari - Desember)
     bulan_list = [
@@ -186,8 +176,7 @@ def run_seed():
         periode_objs.append(p)
     print("✅ 12 Periode Kas 2026 berhasil dibuat.")
 
-    # 7. Data Pembayaran Iuran Kas (Simulasi Realistic: Jan-Okt mayoritas bayar, Nov-Des ada yg bayar/nunggak)
-    # Pembayaran kas anggota juga akan otomatis mengaitkan catatan kas masuk
+    # 7. Data Pembayaran Iuran Kas (Simulasi Realistic untuk 4 Mahasiswa)
     kat_iuran = kat_dict['Iuran Kas Anggota']
 
     # Delete existing transactions and iuran for fresh clean seeding
@@ -195,16 +184,14 @@ def run_seed():
     IuranKas.objects.all().delete()
 
     for idx, ag in enumerate(anggota_objs):
-        # Anggota BPH & staff senior bayar lebih rajin (10-12 bulan)
-        # Sebagian anggota nunggak 2-4 bulan
-        if idx in [0, 1, 2]: # BPH
-            lunas_sampai_bulan = 11
-        elif idx in [3, 6, 9, 11, 13]: # Kepala divisi
-            lunas_sampai_bulan = 9
-        elif idx in [4, 7, 12]: # Staff aktif
-            lunas_sampai_bulan = 8
-        else: # Staff junior / ada tunggakan
-            lunas_sampai_bulan = 6
+        if idx == 0:
+            lunas_sampai_bulan = 9  # Ni Made Anggita Maharani: Jan-Sep lunas (Okt menunggu verifikasi bukti)
+        elif idx == 1:
+            lunas_sampai_bulan = 10 # I Made Apriana: Jan-Okt lunas (Nov menunggu verifikasi bukti)
+        elif idx == 2:
+            lunas_sampai_bulan = 8  # Ngurah Putra Amerta Widhi Gunaya: Jan-Agt lunas
+        else:
+            lunas_sampai_bulan = 7  # Novansius Marijo Lende: Jan-Jul lunas
 
         for p in periode_objs:
             if p.bulan <= lunas_sampai_bulan:
@@ -226,7 +213,7 @@ def run_seed():
                     status='lunas',
                     nominal_dibayar=p.nominal,
                     tanggal_bayar=tgl_bayar,
-                    metode_pembayaran='QRIS' if idx % 2 == 0 else 'Tunai',
+                    metode_pembayaran='QRIS' if idx % 2 == 0 else 'Transfer Bank',
                     transaksi=trx
                 )
             else:
@@ -237,7 +224,7 @@ def run_seed():
                     status='belum_lunas',
                     nominal_dibayar=Decimal('0')
                 )
-    print("✅ Seluruh data matriks iuran kas anggota 2026 berhasil disinkronkan.")
+    print("✅ Seluruh data matriks iuran kas 4 anggota berhasil disinkronkan.")
 
     # 8. Transaksi Kas Masuk & Keluar Non-Iuran (Simulasi Operasional BEM 2026 - Data Kampus & Sponsorship)
     transaksi_sample = [
@@ -286,32 +273,42 @@ def run_seed():
 
     # 9. Sample Pengajuan Pembayaran Iuran dari Anggota (Menunggu Verifikasi Bendahara)
     PengajuanIuran.objects.all().delete()
-    ag_dimas = Anggota.objects.filter(nim='2408101004').first()
+    from kas_app.views import generate_mock_transfer_receipt
+
+    ag_anggita = Anggota.objects.filter(nim='240110262').first()
     p_okt = PeriodeKas.objects.filter(tahun=2026, bulan=10).first()
-    if ag_dimas and p_okt:
+    if ag_anggita and p_okt:
+        resi_anggita = generate_mock_transfer_receipt(
+            ag_anggita, p_okt, metode='Transfer Bank BCA',
+            catatan='Sudah transfer via m-BCA a.n. Ni Made Anggita Maharani'
+        )
         PengajuanIuran.objects.create(
-            anggota=ag_dimas,
+            anggota=ag_anggita,
             periode=p_okt,
             nominal=Decimal('10000'),
             metode_pembayaran='Transfer Bank',
-            bukti_transfer='bukti_transfer_anggota/sample_dimas_bca.png',
-            catatan='Sudah transfer via Bank BCA a.n. Dimas Arya. Mohon verifikasinya min, terima kasih!',
+            bukti_transfer=resi_anggita,
+            catatan='Sudah transfer via Bank BCA a.n. Ni Made Anggita Maharani. Mohon verifikasinya min, terima kasih!',
             status='menunggu'
         )
 
-    ag_anisa = Anggota.objects.filter(nim='2408101012').first()
-    p_sep = PeriodeKas.objects.filter(tahun=2026, bulan=9).first()
-    if ag_anisa and p_sep:
+    ag_apriana = Anggota.objects.filter(nim='2401010259').first()
+    p_nov = PeriodeKas.objects.filter(tahun=2026, bulan=11).first()
+    if ag_apriana and p_nov:
+        resi_apriana = generate_mock_transfer_receipt(
+            ag_apriana, p_nov, metode='QRIS',
+            catatan='Scan QRIS resmi BEM a.n. I Made Apriana'
+        )
         PengajuanIuran.objects.create(
-            anggota=ag_anisa,
-            periode=p_sep,
+            anggota=ag_apriana,
+            periode=p_nov,
             nominal=Decimal('10000'),
             metode_pembayaran='QRIS',
-            bukti_transfer='bukti_transfer_anggota/sample_anisa_qris.png',
-            catatan='Pembayaran kas bulan September via scan QRIS resmi BEM.',
+            bukti_transfer=resi_apriana,
+            catatan='Pembayaran kas bulan November via scan QRIS resmi ormawa.',
             status='menunggu'
         )
-    print("✅ 2 Pengajuan iuran kas anggota (Lengkap dengan Bukti Transfer Resi) siap diuji.")
+    print("✅ 2 Pengajuan iuran kas anggota (Lengkap dengan Bukti Resi Bank/QRIS) siap diverifikasi.")
 
     # Hitung Saldo Akhir
     total_in = Transaksi.objects.filter(jenis='masuk').aggregate(django.db.models.Sum('nominal'))['nominal__sum'] or Decimal('0')
@@ -325,7 +322,11 @@ def run_seed():
     print(f"📉 Total Kas Keluar: Rp {total_out:,.0f}")
     print(f"💎 Saldo Akhir Kas: Rp {saldo_akhir:,.0f}")
     print(f"👤 Login Bendahara : admin / admin123")
-    print(f"👤 Login Anggota   : anggota / anggota123 (atau NIM: 2408101004 / password123)")
+    print(f"👤 Login Anggota (NIM / anggota123):")
+    print(f"   - 240110262 : Ni Made Anggita Maharani")
+    print(f"   - 2401010259 : I Made Apriana")
+    print(f"   - 2401010505 : Ngurah Putra Amerta Widhi Gunaya")
+    print(f"   - 2401010838 : Novansius Marijo Lende")
     print("==================================================")
 
 if __name__ == '__main__':

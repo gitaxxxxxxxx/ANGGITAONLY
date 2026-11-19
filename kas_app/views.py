@@ -4,6 +4,7 @@ from datetime import datetime, date
 from decimal import Decimal
 import urllib.parse
 
+from functools import wraps
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
@@ -18,6 +19,18 @@ from .models import (
     ProfilOrganisasi, Divisi, Anggota,
     KategoriTransaksi, Transaksi, PeriodeKas, IuranKas, PengajuanIuran
 )
+
+
+def bendahara_required(view_func):
+    """Decorator untuk memastikan pengguna sudah login dan merupakan Bendahara / Admin."""
+    @wraps(view_func)
+    @login_required(login_url='login')
+    def _wrapped_view(request, *args, **kwargs):
+        if hasattr(request.user, 'profil_anggota') and not request.user.is_staff and not request.user.is_superuser:
+            messages.warning(request, "Halaman ini khusus untuk Bendahara / Pengurus Ormawa.")
+            return redirect('portal_anggota')
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
 
 
 # ==========================================
@@ -157,11 +170,8 @@ def sinkronisasi_iuran_anggota(tahun):
 # ==========================================
 # DASHBOARD
 # ==========================================
+@bendahara_required
 def dashboard_view(request):
-    # Jika yang login adalah Anggota (Bukan Staff/Bendahara), arahkan ke Portal Khusus Anggota
-    if request.user.is_authenticated and hasattr(request.user, 'profil_anggota') and not request.user.is_staff:
-        return redirect('portal_anggota')
-
     profil = get_profil()
     current_year = timezone.now().year
 
@@ -262,6 +272,7 @@ def dashboard_view(request):
 # ==========================================
 # TRANSAKSI KAS
 # ==========================================
+@bendahara_required
 def transaksi_list_view(request):
     transaksi_qs = Transaksi.objects.select_related('kategori', 'divisi_terkait', 'dicatat_oleh').all()
 
@@ -316,6 +327,7 @@ def transaksi_list_view(request):
     return render(request, 'kas_app/transaksi_list.html', context)
 
 
+@bendahara_required
 def transaksi_create_view(request):
     if request.user.is_authenticated and hasattr(request.user, 'profil_anggota') and not request.user.is_staff:
         messages.error(request, "Akses ditolak. Anggota hanya dapat mengunggah bukti transfer kas.")
@@ -371,6 +383,7 @@ def transaksi_create_view(request):
     })
 
 
+@bendahara_required
 def transaksi_update_view(request, pk):
     if request.user.is_authenticated and hasattr(request.user, 'profil_anggota') and not request.user.is_staff:
         messages.error(request, "Akses ditolak.")
@@ -418,6 +431,7 @@ def transaksi_update_view(request, pk):
     })
 
 
+@bendahara_required
 def transaksi_delete_view(request, pk):
     transaksi = get_object_or_404(Transaksi, pk=pk)
     if request.method == 'POST':
@@ -432,6 +446,7 @@ def transaksi_delete_view(request, pk):
     })
 
 
+@bendahara_required
 def transaksi_export_csv(request):
     response = HttpResponse(content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = f'attachment; filename="Laporan_Transaksi_Kas_{timezone.now().strftime("%Y%m%d_%H%M")}.csv"'
@@ -462,6 +477,7 @@ def transaksi_export_csv(request):
 # ==========================================
 # IURAN KAS ANGGOTA & MATRIKS REKAPITULASI
 # ==========================================
+@bendahara_required
 def iuran_matrix_view(request):
     profil = get_profil()
     tahun = int(request.GET.get('tahun', timezone.now().year))
@@ -631,6 +647,7 @@ def iuran_matrix_view(request):
     return render(request, 'kas_app/iuran_matrix.html', context)
 
 
+@bendahara_required
 def iuran_toggle_status(request, iuran_id):
     """Menolak bypass toggle iuran tanpa bukti transfer dari anggota."""
     messages.warning(
@@ -641,6 +658,7 @@ def iuran_toggle_status(request, iuran_id):
     return redirect('iuran_matrix')
 
 
+@bendahara_required
 def iuran_bayar_cepat(request):
     """Menolak bypass setor cepat tanpa bukti transfer anggota."""
     messages.warning(
@@ -651,6 +669,7 @@ def iuran_bayar_cepat(request):
     return redirect('iuran_matrix')
 
 
+@bendahara_required
 def generate_periode_tahunan(request, tahun):
     pastikan_periode_tahun(tahun)
     sinkronisasi_iuran_anggota(tahun)
@@ -661,6 +680,7 @@ def generate_periode_tahunan(request, tahun):
 # ==========================================
 # FITUR UNGGULAN: REKAPITULASI OTOMATIS
 # ==========================================
+@login_required(login_url='login')
 def rekapitulasi_view(request):
     profil = get_profil()
     tahun = int(request.GET.get('tahun', timezone.now().year))
@@ -784,6 +804,7 @@ def rekapitulasi_view(request):
     return render(request, 'kas_app/rekapitulasi.html', context)
 
 
+@login_required(login_url='login')
 def cetak_lpj_view(request):
     """Halaman Laporan Pertanggungjawaban (LPJ) Keuangan resmi siap cetak."""
     profil = get_profil()
@@ -834,6 +855,7 @@ def cetak_lpj_view(request):
     return render(request, 'kas_app/cetak_lpj.html', context)
 
 
+@login_required(login_url='login')
 def rekap_bulanan_export_csv(request):
     tahun = int(request.GET.get('tahun', timezone.now().year))
     profil = get_profil()
@@ -892,6 +914,7 @@ def rekap_bulanan_export_csv(request):
 # ==========================================
 # MANAJEMEN ANGGOTA
 # ==========================================
+@bendahara_required
 def anggota_list_view(request):
     anggota_qs = Anggota.objects.select_related('divisi').all()
 
@@ -930,6 +953,7 @@ def anggota_list_view(request):
     return render(request, 'kas_app/anggota_list.html', context)
 
 
+@bendahara_required
 def anggota_create_view(request):
     if request.method == 'POST':
         nim = request.POST.get('nim', '').strip()
@@ -966,6 +990,7 @@ def anggota_create_view(request):
     })
 
 
+@bendahara_required
 def anggota_update_view(request, pk):
     anggota = get_object_or_404(Anggota, pk=pk)
     if request.method == 'POST':
@@ -993,6 +1018,7 @@ def anggota_update_view(request, pk):
     })
 
 
+@bendahara_required
 def anggota_delete_view(request, pk):
     anggota = get_object_or_404(Anggota, pk=pk)
     if request.method == 'POST':
@@ -1007,6 +1033,7 @@ def anggota_delete_view(request, pk):
     })
 
 
+@bendahara_required
 def anggota_detail_view(request, pk):
     anggota = get_object_or_404(Anggota, pk=pk)
     tahun = int(request.GET.get('tahun', timezone.now().year))
@@ -1032,6 +1059,7 @@ def anggota_detail_view(request, pk):
 # ==========================================
 # PENGATURAN SISTEM & PROFIL
 # ==========================================
+@bendahara_required
 def pengaturan_view(request):
     profil = get_profil()
     if request.method == 'POST':
@@ -1079,6 +1107,7 @@ def pengaturan_view(request):
     return render(request, 'kas_app/pengaturan.html', context)
 
 
+@bendahara_required
 def kategori_create_view(request):
     if request.method == 'POST':
         nama = request.POST.get('nama', '').strip()
@@ -1095,6 +1124,7 @@ def kategori_create_view(request):
     return redirect('pengaturan')
 
 
+@bendahara_required
 def kategori_delete_view(request, pk):
     kategori = get_object_or_404(KategoriTransaksi, pk=pk)
     if kategori.is_iuran_kas:
@@ -1143,11 +1173,11 @@ def login_view(request):
         if user is not None:
             login(request, user)
             messages.success(request, f"Selamat datang kembali, {user.first_name or user.username}!")
-            next_url = request.GET.get('next')
-            if next_url:
-                return redirect(next_url)
-            if hasattr(user, 'profil_anggota') and not user.is_staff:
+            if hasattr(user, 'profil_anggota') and not user.is_staff and not user.is_superuser:
                 return redirect('portal_anggota')
+            next_url = request.GET.get('next')
+            if next_url and next_url != '/' and not next_url.startswith('/login'):
+                return redirect(next_url)
             return redirect('dashboard')
         else:
             messages.error(request, "Username/NIM atau kata sandi salah. Silakan coba lagi.")
@@ -1164,6 +1194,7 @@ def logout_view(request):
 # ==========================================
 # PORTAL ANGGOTA MAHASISWA & KIRIM BUKTI KAS
 # ==========================================
+@login_required(login_url='login')
 def portal_anggota_view(request):
     profil = get_profil()
     current_year = timezone.now().year
@@ -1247,6 +1278,7 @@ def portal_anggota_view(request):
     return render(request, 'kas_app/portal_anggota.html', context)
 
 
+@login_required(login_url='login')
 def kirim_bukti_iuran_view(request):
     """Memungkinkan anggota mengunggah struk/bukti transfer kas rutin."""
     if request.method == 'POST':
@@ -1302,6 +1334,7 @@ def kirim_bukti_iuran_view(request):
 # ==========================================
 # VERIFIKASI BUKTI BAYAR (PANEL BENDAHARA)
 # ==========================================
+@bendahara_required
 def verifikasi_iuran_list_view(request):
     """Halaman bendahara untuk meninjau dan memverifikasi bukti bayar anggota."""
     if request.user.is_authenticated and hasattr(request.user, 'profil_anggota') and not request.user.is_staff:
@@ -1328,6 +1361,7 @@ def verifikasi_iuran_list_view(request):
     return render(request, 'kas_app/verifikasi_iuran.html', context)
 
 
+@bendahara_required
 def verifikasi_iuran_action_view(request, pk):
     """Aksi menyetujui (ACC) atau menolak pengajuan bukti kas dari anggota."""
     if request.user.is_authenticated and hasattr(request.user, 'profil_anggota') and not request.user.is_staff:

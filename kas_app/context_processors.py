@@ -19,7 +19,7 @@ def profil_organisasi_processor(request):
             saldo_awal=500000
         )
 
-    is_bendahara = True
+    is_bendahara = False
     is_anggota = False
     user_anggota = None
 

@@ -26,6 +26,12 @@ SECRET_KEY = 'django-insecure-(f@we1=0dligjs&&#u@al6pknc8la933%r0s2onu!p5wkw4b-4
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.pythonanywhere.com',
+    'https://gitaxs.pythonanywhere.com',
+    'http://127.0.0.1',
+    'http://localhost',
+]
 
 # Application definition
 
